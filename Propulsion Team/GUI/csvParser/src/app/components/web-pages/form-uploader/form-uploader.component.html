@@ -1,0 +1,26 @@
+<!-- Error message -->
+<app-error-notification [errorMessage]="errorMessage" [show] = 'errorShow' bgColour="#db736b" borderColour="#db544b" textColour="white"></app-error-notification>
+
+<!-- Csv Uploader -->
+<div #formUploader class="duration-300 text-2xl lg:text-4xl text-center font-normal p-4 rounded-3xl w-[70vw] md:w-[50vw] h-[50vh] bg-white flex flex-col items-center justify-evenly">    
+    <input type="file" #fileDropRef multiple (change)="onFileChange($event)" class="hidden" #fileInput accept=".csv" />
+    <fa-icon [icon]="faUploadIcon" class="text-[7vw] lg:text-[5vw]"></fa-icon>  
+    <h1>Drag and drop .csv files here</h1>
+    <h1>or</h1>
+    <div class="cursor-pointer rounded-full bg-purple-500 px-5 py-3 lg:px-7 lg:py-4 hover:bg-purple-700 text-center text-nowrap" (click) = "fileInput.click()">Browse .csv files here</div>
+</div>
+
+<!-- Show csv files -->
+@if(all_files.length > 0) {
+<div class="flex flex-col items-end justify-evenly mt-5">
+    <div class="cursor-pointer rounded-xl bg-purple-500 px-2 py-1 lg:px-3 lg:py-2 hover:bg-purple-700 text-center text-nowrap" (click)="uploadFiles()">Upload</div>
+    <div class="overflow-y-auto h-[10rem] w-full">
+        @for (file of all_files ; track $index) {
+            <div class="mt-2">
+                <app-form-upload-notification [file]="file"></app-form-upload-notification>
+            </div>
+        }
+    </div>
+</div>
+}
+

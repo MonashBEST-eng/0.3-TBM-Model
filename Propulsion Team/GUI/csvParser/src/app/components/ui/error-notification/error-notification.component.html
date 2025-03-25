@@ -1,0 +1,9 @@
+<div class="w-full rounded-lg p-2 absolute left-0 border-4"
+    [ngStyle]="{'top': show ? '0' : '-100%', 
+                'transition': 'top 0.7s ease-in-out',
+                'background-color': bgColour,
+                'border-color': borderColour,
+                'color': textColour
+    }">
+    <h1>{{errorMessage}}</h1>
+</div>
