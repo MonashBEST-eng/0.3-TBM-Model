@@ -1,0 +1,24 @@
+name: ✅ Enforce Branch Naming
+
+on:
+  push:
+    branches-ignore:
+      - main  # Optional: allow pushes to main directly
+  pull_request:
+
+jobs:
+  lint-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get branch name
+        run: |
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF##*/}}"
+          echo "🔎 Checking branch: $BRANCH_NAME"
+
+          if ! echo "$BRANCH_NAME" | grep -Eq '^(main|feature|bug|docs|chore|hotfix)/[a-z0-9._-]+$'; then
+            echo "❌ Invalid branch name: $BRANCH_NAME"
+            echo "➡️  Must match: feature/, bug/, docs/, chore/, hotfix/, or main"
+            exit 1
+          else
+            echo "✅ Branch name valid"
+          fi
