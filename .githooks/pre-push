@@ -1,0 +1,9 @@
+#!/bin/sh
+
+branch_name=$(git symbolic-ref --short HEAD)
+
+if ! echo "$branch_name" | grep -Eq '^(feature|bug|docs|chore|hotfix)/[a-z0-9._-]+$'; then
+  echo "❌ Invalid branch name: \"$branch_name\""
+  echo "➡️  Use: feature/, bug/, docs/, chore/, or hotfix/"
+  exit 1
+fi
