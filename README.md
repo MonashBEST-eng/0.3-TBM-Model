@@ -7,7 +7,7 @@ Welcome to the code repository of  Monash BEST! This repository contains the sou
 This repository is organized into different folders, each dedicated to a specific sub-team within Monash BEST. Please ensure that codes, scripts, 
 or tools are uploaded to the correct folders based on the sub-team that you belong to. 
 
-## 🧠 Git Conventions for This Repository
+## Git Conventions for This Repository
 
 To maintain a clean, consistent, and automation-friendly Git history, this project uses enforced conventions for **branch names** and **commit messages**.
 
