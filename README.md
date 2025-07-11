@@ -13,7 +13,7 @@ To maintain a clean, consistent, and automation-friendly Git history, this proje
 
 ---
 
-## 📂 Branch Naming Convention
+##  Branch Naming Convention
 
 Branches must follow this structure:
 
