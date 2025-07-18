@@ -1,0 +1,24 @@
+/* Layout setup: left (supply) and right (components) */
+#container {
+    display: flex;
+    padding: 20px;
+    gap: 40px;
+}
+#supplyBox, #componentsBox {
+    border: 1px solid black;
+    padding: 10px;
+}
+.component {
+    border: 1px solid gray;
+    margin: 5px;
+    padding: 5px;
+}
+.over-limit {
+    background-color: #ffcccc;
+}
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
