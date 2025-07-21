@@ -1,4 +1,8 @@
 /* Layout setup: left (supply) and right (components) */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
 #container {
     display: flex;
     padding: 20px;
@@ -7,6 +11,7 @@
 #supplyBox, #componentsBox {
     border: 1px solid black;
     padding: 10px;
+    gap: 20px;
 }
 .component {
     border: 1px solid gray;

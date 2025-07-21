@@ -28,6 +28,7 @@ function renderComponents(data) {
 
     const elements = {}; // Stores DOM elements by Ref.
     let totalPower = 0;
+    let maxTotalPower = 0;
 
     // Create visual boxes for each ECU
     data.forEach(item => {
@@ -35,18 +36,22 @@ function renderComponents(data) {
     box.className = "component";
     box.innerHTML = `
         <strong>${item["Ref."]}</strong><br>
-        ${item["Power (W)"]}W, ${item["Voltage (V)"]}V, ${item["Current (A)"]}A
+        Nominal - ${item["Nominal Power (W)"]}W, ${item["Nominal Voltage (V)"]}V, ${item["Nominal Current (A)"]}A<br>
+        Max - ${item["Max Power (W)"]}W, ${item["Max Voltage (V)"]}V, ${item["Max Current (A)"]}A
     `;
 
-    const power = parseFloat(item["Power (W)"]);
+    const power = parseFloat(item["Nominal Power (W)"]);
+    const maxPower = parseFloat(item["Max Power (W)"]);
     if (!isNaN(power)) totalPower += power;
+    if (!isNaN(maxPower)) maxTotalPower += maxPower;
 
     elements[item["Ref."]] = box;
     componentsBox.appendChild(box);
     });
 
     // Update total power
-    document.getElementById("totalPower").innerText = `${totalPower}W`;
+    document.getElementById("totalPower").innerText = `${Math.round(totalPower * 100) / 100}W`;
+    document.getElementById("maxTotalPower").innerText = `${Math.round(maxTotalPower * 100) / 100}W`;
 
     // // After render, draw lines between parent and child components
     // drawLines(data, elements);

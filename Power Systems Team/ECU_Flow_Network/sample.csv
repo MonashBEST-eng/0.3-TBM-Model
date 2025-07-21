@@ -1,9 +1,10 @@
-Super Class,Class,Type,Ref.,Parent,Current (A),Voltage (V),Power (W)
-ECU,Load,MainECU,ECU1,,2,48,96
-ECU,Load,SubECU,ECU2,ECU1,1.5,48,72
-Loom,Connector,Cable1,LOOM1,ECU1,0.5,48,24
-Loom,Connector,Cable2,LOOM2,ECU2,0.2,48,9.6
-ECU,SMPs,PowerRegulator,REG1,ECU2,0.4,12,4.8
-Transformer,Transformer,StepDown,TR1,REG1,0.3,5,1.5
-Misc. SMD,LDO,LDO1,LDO1,REG1,0.05,3.3,0.165
-ECU,Load,Sensor,SENS1,ECU2,0.1,5,0.5
+Super Class,Class,Type,Ref.,Parent,Nominal Current (A),Nominal Voltage (V),Nominal Power (W),Max Current (A),Max Voltage (V),Max Power (W)
+ECU,Load,MainECU,ECU1,,2,48,96,2.5,48,120
+ECU,Load,SubECU,ECU2,ECU1,1.5,48,72,2,48,96
+Loom,Connector,Cable1,LOOM1,ECU1,0.5,48,24,0.6,48,28.8
+Loom,Connector,Cable2,LOOM2,ECU2,0.2,48,9.6,0.3,48,14.4
+ECU,SMPs,PowerRegulator,REG1,ECU2,0.4,12,4.8,0.5,12,6
+Transformer,Transformer,StepDown,TR1,REG1,0.3,5,1.5,0.4,5,2
+Misc. SMD,LDO,LDO1,LDO1,REG1,0.05,3.3,0.165,0.06,3.3,0.198
+ECU,Load,Sensor,SENS1,ECU2,0.1,5,0.5,0.15,5,0.75
+
