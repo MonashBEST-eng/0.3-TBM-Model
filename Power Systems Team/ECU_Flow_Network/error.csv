@@ -1,0 +1,9 @@
+id,parent_id,Nominal Input Voltage (V),Nominal Input Current (A),Max Input Voltage (V),Max Input Current (A),Nominal Output Voltage (V),Nominal Output Current (A),Max Output Voltage (V),Max Output Current (A)
+ECU1,,48,2,50,3,48,2,50,3
+ECU2,ECU1,55,2,50,3,55,3,50,3          
+LOOM1,ECU1,48,0.5,50,3,48,0.5,50,3
+LOOM2,ECU2,48,1.0,50,2,48,1.0,50,2     
+REG1,ECU2,12,4,13,1,12,4,13,1           
+TR1,REG1,5,0.3,6,1,5,0.3,6,1
+LDO1,REG1,3.3,0.05,4,1,3.3,0.05,4,1
+SENS1,ECU2,5,0.1,6,1,5,0.1,6,1
