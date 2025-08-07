@@ -1,0 +1,8 @@
+../Core/Src/main.c:67:6:Motor_Control	24	static
+../Core/Src/main.c:92:6:Motor_Stop	4	static
+../Core/Src/main.c:101:6:Motor_Brake	8	static
+../Core/Src/main.c:111:5:main	8	static
+../Core/Src/main.c:180:6:SystemClock_Config	88	static
+../Core/Src/main.c:227:13:MX_TIM1_Init	120	static
+../Core/Src/main.c:309:13:MX_GPIO_Init	48	static
+../Core/Src/main.c:369:6:Error_Handler	4	static,ignoring_inline_asm
