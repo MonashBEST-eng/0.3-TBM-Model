@@ -6,6 +6,7 @@ class ECUNetwork:
         self.nodes = {}
         self.root = None
         self.load_nodes(csv_file_path)
+        self.elements = []
 
     def load_nodes(self, csv_file_path):
         with open(csv_file_path, newline='') as csvfile:
@@ -51,6 +52,7 @@ class ECUNetwork:
     def analyze(self):
         errors = []
         warnings = []
+        elements = []
         for node in self.nodes.values():
             messages = self.validate_node(node)
             for level, msg in messages:
