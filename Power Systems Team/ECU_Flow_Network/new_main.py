@@ -137,7 +137,6 @@ def generate_pdf_report(errors, warnings, supply_data, output_file="ecu_report.p
     ]))
     elements.append(table)
     doc.build(elements)
-    print(f"📄 PDF report generated: {output_file}")
 
 # === DASH CYTOSCAPE UI ===
 app = dash.Dash(__name__)
@@ -194,7 +193,7 @@ app.layout = html.Div([
     cyto.Cytoscape(
         id='cytoscape-network',
         elements=elements,
-        style={'width': '100%', 'height': '600px'},
+        style={'width': '800px', 'height': '600px'},
         stylesheet=[
             {'selector': 'node',
              'style': {
