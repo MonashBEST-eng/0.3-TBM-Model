@@ -165,7 +165,12 @@ def create_elements(nodes, errors, warnings):
             for e_node, msg in errors + warnings:
                 if e_node == child.id:
                     desc += msg + " "
-                    edge_class = "error-edge" if (e_node, msg) in errors else "warning-edge"
+                    if (e_node, msg) in errors:
+                        edge_class = "error-edge"
+                    elif (e_node, msg) in warnings:
+                        edge_class = "warning-edge"
+                    else:
+                        edge_class = "edge"
             elements.append({
                 'data': {
                     'source': node_id,
@@ -193,7 +198,11 @@ app.layout = html.Div([
     cyto.Cytoscape(
         id='cytoscape-network',
         elements=elements,
+        layout={'name': 'cose', 'animate': True},
         style={'width': '800px', 'height': '600px'},
+        userZoomingEnabled=True,
+        userPanningEnabled=True,
+        autoungrabify=False,
         stylesheet=[
             {'selector': 'node',
              'style': {
@@ -206,9 +215,36 @@ app.layout = html.Div([
                  'width': 60,
                  'height': 60
              }},
-            {'selector': 'edge', 'style': {'line-color': '#ccc', 'width': 2}},
-            {'selector': '.warning-edge', 'style': {'line-color': 'yellow', 'width': 4}},
-            {'selector': '.error-edge', 'style': {'line-color': 'red', 'width': 4}}
+            {
+                "selector": "edge",
+                "style": {
+                    "width": 2,
+                    "line-color": "rgb(0,0,0)",
+                    "target-arrow-color": "black",
+                    "target-arrow-shape": "triangle",  # adds direction
+                    "curve-style": "bezier",           # smoother edge
+                }
+            },
+            {
+                'selector': '.warning-edge', 
+                'style': {
+                    'line-color': 'yellow', 
+                    'width': 4,
+                    "target-arrow-color": "yellow",
+                    "target-arrow-shape": "triangle",  # adds direction
+                    "curve-style": "bezier",           # smoother edge
+                    }
+            },
+            {
+                'selector': '.error-edge', ''
+                'style': {
+                    'line-color': 'red', 
+                    'width': 4,
+                    "target-arrow-color": "red",
+                    "target-arrow-shape": "triangle",  # adds direction
+                    "curve-style": "bezier",  
+                    }
+            }
         ]
     ),
     html.Div(id='tooltip-div', style={'marginTop': '20px', 'fontWeight': 'bold'})
