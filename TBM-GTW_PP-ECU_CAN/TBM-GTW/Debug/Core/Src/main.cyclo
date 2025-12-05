@@ -1,0 +1,8 @@
+../Core/Src/main.c:69:5:main	3
+../Core/Src/main.c:118:6:SystemClock_Config	4
+../Core/Src/main.c:178:13:MX_FDCAN1_Init	2
+../Core/Src/main.c:231:13:MX_FDCAN2_Init	2
+../Core/Src/main.c:284:13:MX_GPIO_Init	1
+../Core/Src/main.c:300:13:ForwardMessages	3
+../Core/Src/main.c:329:6:GatewayTask	1
+../Core/Src/main.c:343:6:Error_Handler	1
