@@ -28,6 +28,8 @@ typedef struct {
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define ECU_ID  0
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -80,7 +82,7 @@ void SendStatus(uint8_t code);
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
-    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0)
+    if (!(RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE))
         return;
 
     FDCAN_RxHeaderTypeDef RxHeader;
@@ -89,18 +91,16 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
     if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK)
         return;
 
-    // Only handle our command ID 0x100
-    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME)
-        return;
+    uint32_t id = RxHeader.Identifier;
 
-    // PREPARE: DLC == 6 -> [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
-    if (RxHeader.DataLength == FDCAN_DLC_BYTES_6)
+    /* ---------------------- PREPARE COMMAND ---------------------- */
+    if (id == (0x200 + ECU_ID) && RxHeader.DataLength == FDCAN_DLC_BYTES_6)
     {
         int8_t d1 = (int8_t)rxData[0];
         int8_t d2 = (int8_t)rxData[1];
 
-        uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
-        uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
+        uint16_t t1 = (uint16_t)(rxData[2] | (rxData[3] << 8));
+        uint16_t t2 = (uint16_t)(rxData[4] | (rxData[5] << 8));
 
         cmd[0].dir         = d1;
         cmd[0].duration_ms = t1;
@@ -110,11 +110,12 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
         prepared      = true;
         motion_active = false;
 
-        // Tell PC we're ready
-        SendStatus(0x01); // PREPARED
+        // Respond PREPARED
+        SendStatus(0x01);
     }
-    // START: DLC == 1, data[0] == 0xFF
-    else if (RxHeader.DataLength == FDCAN_DLC_BYTES_1 && rxData[0] == 0xFF)
+
+    /* ---------------------- START BROADCAST ---------------------- */
+    else if (id == 0x210 && RxHeader.DataLength >= FDCAN_DLC_BYTES_1 && rxData[0] == 0xFF)
     {
         if (prepared)
         {
@@ -122,24 +123,17 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
             Motor2_Sleep(0);
 
             // Motor 1 direction
-            if (cmd[0].dir > 0)
-                Motor1_Control(MOTOR_STATE_FORWARD);
-            else if (cmd[0].dir < 0)
-                Motor1_Control(MOTOR_STATE_REVERSE);
-            else
-                Motor1_Control(MOTOR_STATE_COAST);
+            if (cmd[0].dir > 0)      Motor1_Control(MOTOR_STATE_FORWARD);
+            else if (cmd[0].dir < 0) Motor1_Control(MOTOR_STATE_REVERSE);
+            else                     Motor1_Control(MOTOR_STATE_COAST);
 
             // Motor 2 direction
-            if (cmd[1].dir > 0)
-                Motor2_Control(MOTOR_STATE_FORWARD);
-            else if (cmd[1].dir < 0)
-                Motor2_Control(MOTOR_STATE_REVERSE);
-            else
-                Motor2_Control(MOTOR_STATE_COAST);
+            if (cmd[1].dir > 0)      Motor2_Control(MOTOR_STATE_FORWARD);
+            else if (cmd[1].dir < 0) Motor2_Control(MOTOR_STATE_REVERSE);
+            else                     Motor2_Control(MOTOR_STATE_COAST);
 
             if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
             {
-                // Nothing to move
                 Motor1_Sleep(1);
                 Motor2_Sleep(1);
                 prepared      = false;
@@ -322,7 +316,7 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.DataSyncJumpWidth = 1;
   hfdcan1.Init.DataTimeSeg1 = 1;
   hfdcan1.Init.DataTimeSeg2 = 1;
-  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.StdFiltersNbr = 1;
   hfdcan1.Init.ExtFiltersNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
@@ -336,8 +330,8 @@ static void MX_FDCAN1_Init(void)
   sFilterConfig.FilterIndex  = 0;
   sFilterConfig.FilterType   = FDCAN_FILTER_MASK;
   sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  sFilterConfig.FilterID1    = 0x100;  // ID to match
-  sFilterConfig.FilterID2    = 0x7FF;  // mask: accept only 0x100
+  sFilterConfig.FilterID1    = 0x000;  // ID to match
+  sFilterConfig.FilterID2    = 0x000;  // mask: accept only 0x100
 
   if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK)
   {
@@ -494,7 +488,7 @@ void Motor2_Sleep(uint8_t sleep)
 
 void SendStatus(uint8_t code)
 {
-    TxHeader.Identifier          = 0x101;
+    TxHeader.Identifier          = 0x300 + ECU_ID;
     TxHeader.IdType              = FDCAN_STANDARD_ID;
     TxHeader.TxFrameType         = FDCAN_DATA_FRAME;
     TxHeader.DataLength          = FDCAN_DLC_BYTES_1;
