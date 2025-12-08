@@ -193,127 +193,133 @@ void SendStatus(uint8_t code);
 //    }
 //}
 
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-{
-    debug_printf("[IRQ] RX interrupt fired\r\n");
-
-    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0) {
-        // Not a new message event
-        return;
-    }
-
-    FDCAN_RxHeaderTypeDef RxHeader;
-    uint8_t rxData[8];
-
-    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK) {
-        debug_printf("[IRQ] HAL_FDCAN_GetRxMessage FAILED\r\n");
-        return;
-    }
-
-    // Convert HAL DLC encoding to actual byte count (0..8)
-    uint32_t dlc_bytes = RxHeader.DataLength >> 16;
-
-    debug_printf("[IRQ] RX ID=0x%03lX DLC=%lu\r\n",
-                 RxHeader.Identifier, dlc_bytes);
-
-    debug_printf("[IRQ] Data:");
-    for (uint32_t i = 0; i < dlc_bytes; i++) {
-        char tmp[8];
-        snprintf(tmp, sizeof(tmp), " %02X", rxData[i]);
-        debug_printf("%s", tmp);
-    }
-    debug_printf("\r\n");
-
-    // Only handle our command ID 0x100 as a data frame
-    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME) {
-        debug_printf("[IRQ] Ignored frame (ID=0x%03lX, type=%lu)\r\n",
-                     RxHeader.Identifier, RxHeader.RxFrameType);
-        return;
-    }
-
-    // ===================== PREPARE =====================
-    // Expect exactly 6 bytes: [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
-    if (dlc_bytes == 6)
-    {
-        int8_t  d1 = (int8_t)rxData[0];
-        int8_t  d2 = (int8_t)rxData[1];
-        uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
-        uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
-
-        cmd[0].dir         = d1;
-        cmd[0].duration_ms = t1;
-        cmd[1].dir         = d2;
-        cmd[1].duration_ms = t2;
-
-        prepared      = true;
-        motion_active = false;
-
-        debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n", d1, d2, t1, t2);
-
-        // Tell PC we're ready
-        SendStatus(0x01); // PREPARED
-        return;
-    }
-
-    // ====================== START ======================
-    // Any 1+ byte frame with first byte 0xFF is treated as START
-    if (dlc_bytes >= 1 && rxData[0] == 0xFF)
-    {
-        debug_printf("[START] received, prepared=%d\r\n", prepared ? 1 : 0);
-
-        if (prepared)
-        {
-            Motor1_Sleep(0);
-            Motor2_Sleep(0);
-
-            // Motor 1 direction
-            if (cmd[0].dir > 0)
-                Motor1_Control(MOTOR_STATE_FORWARD);
-            else if (cmd[0].dir < 0)
-                Motor1_Control(MOTOR_STATE_REVERSE);
-            else
-                Motor1_Control(MOTOR_STATE_COAST);
-
-            // Motor 2 direction
-            if (cmd[1].dir > 0)
-                Motor2_Control(MOTOR_STATE_FORWARD);
-            else if (cmd[1].dir < 0)
-                Motor2_Control(MOTOR_STATE_REVERSE);
-            else
-                Motor2_Control(MOTOR_STATE_COAST);
-
-            if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
-            {
-                debug_printf("[START] Zero durations, immediately DONE\r\n");
-
-                Motor1_Sleep(1);
-                Motor2_Sleep(1);
-                prepared      = false;
-                motion_active = false;
-
-                SendStatus(0x03); // DONE
-            }
-            else
-            {
-                motion_start_tick = HAL_GetTick();
-                motion_active     = true;
-
-                debug_printf("[START] Motion active: t1=%u t2=%u\r\n",
-                             cmd[0].duration_ms, cmd[1].duration_ms);
-
-                SendStatus(0x02); // MOVING
-            }
-        }
-        else {
-            debug_printf("[START] Ignored because not prepared\r\n");
-        }
-
-        return;
-    }
-
-    // ================== UNKNOWN CMD ====================
-    debug_printf("[IRQ] Unknown command frame (DLC=%lu)\r\n", dlc_bytes);
-}
+//void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
+//{
+//    (void)RxFifo0ITs;  // we ignore the flags for now
+//    debug_printf("[IRQ] RX interrupt fired\r\n");
+//
+//    FDCAN_RxHeaderTypeDef RxHeader;
+//    uint8_t rxData[8];
+//
+//    // Always try to fetch one frame from FIFO0
+//    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK)
+//    {
+//        debug_printf("[IRQ] HAL_FDCAN_GetRxMessage FAILED\r\n");
+//        return;
+//    }
+//
+//    // Convert HAL DLC encoding to actual byte count (0..8)
+//    uint32_t dlc_bytes = RxHeader.DataLength >> 16;
+//
+//    debug_printf("[IRQ] RX ID=0x%03lX DLC=%lu, IdType=%lu, FrameType=%lu\r\n",
+//                 RxHeader.Identifier,
+//                 dlc_bytes,
+//                 (unsigned long)RxHeader.IdType,
+//                 (unsigned long)RxHeader.RxFrameType);
+//
+//    debug_printf("[IRQ] Data:");
+//    for (uint32_t i = 0; i < dlc_bytes; i++)
+//    {
+//        char tmp[8];
+//        snprintf(tmp, sizeof(tmp), " %02X", rxData[i]);
+//        debug_printf("%s", tmp);
+//    }
+//    debug_printf("\r\n");
+//
+//    // Only handle our command ID 0x100 as a data frame
+//    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME)
+//    {
+//        debug_printf("[IRQ] Ignored frame (ID=0x%03lX, type=%lu)\r\n",
+//                     RxHeader.Identifier,
+//                     (unsigned long)RxHeader.RxFrameType);
+//        return;
+//    }
+//
+//    // ===================== PREPARE =====================
+//    // Expect exactly 6 bytes: [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
+//    if (dlc_bytes == 6)
+//    {
+//        int8_t   d1 = (int8_t)rxData[0];
+//        int8_t   d2 = (int8_t)rxData[1];
+//        uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
+//        uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
+//
+//        cmd[0].dir         = d1;
+//        cmd[0].duration_ms = t1;
+//        cmd[1].dir         = d2;
+//        cmd[1].duration_ms = t2;
+//
+//        prepared      = true;
+//        motion_active = false;
+//
+//        debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n", d1, d2, t1, t2);
+//
+//        // Tell PC we're ready
+//        SendStatus(0x01); // PREPARED
+//        return;
+//    }
+//
+//    // ====================== START ======================
+//    // Any 1+ byte frame with first byte 0xFF is treated as START
+//    if (dlc_bytes >= 1 && rxData[0] == 0xFF)
+//    {
+//        debug_printf("[START] received, prepared=%d\r\n", prepared ? 1 : 0);
+//
+//        if (prepared)
+//        {
+//            Motor1_Sleep(0);
+//            Motor2_Sleep(0);
+//
+//            // Motor 1 direction
+//            if (cmd[0].dir > 0)
+//                Motor1_Control(MOTOR_STATE_FORWARD);
+//            else if (cmd[0].dir < 0)
+//                Motor1_Control(MOTOR_STATE_REVERSE);
+//            else
+//                Motor1_Control(MOTOR_STATE_COAST);
+//
+//            // Motor 2 direction
+//            if (cmd[1].dir > 0)
+//                Motor2_Control(MOTOR_STATE_FORWARD);
+//            else if (cmd[1].dir < 0)
+//                Motor2_Control(MOTOR_STATE_REVERSE);
+//            else
+//                Motor2_Control(MOTOR_STATE_COAST);
+//
+//            if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
+//            {
+//                debug_printf("[START] Zero durations, immediately DONE\r\n");
+//
+//                Motor1_Sleep(1);
+//                Motor2_Sleep(1);
+//                prepared      = false;
+//                motion_active = false;
+//
+//                SendStatus(0x03); // DONE
+//            }
+//            else
+//            {
+//                motion_start_tick = HAL_GetTick();
+//                motion_active     = true;
+//
+//                debug_printf("[START] Motion active: t1=%u t2=%u\r\n",
+//                             cmd[0].duration_ms, cmd[1].duration_ms);
+//
+//                SendStatus(0x02); // MOVING
+//            }
+//        }
+//        else
+//        {
+//            debug_printf("[START] Ignored because not prepared\r\n");
+//        }
+//
+//        return;
+//    }
+//
+//    // ================== UNKNOWN CMD ====================
+//    debug_printf("[IRQ] Unknown command frame (DLC=%lu, first=0x%02X)\r\n",
+//                 dlc_bytes, (dlc_bytes > 0) ? rxData[0] : 0x00);
+//}
 
 
 /* USER CODE END 0 */
@@ -381,30 +387,159 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    if (motion_active)
-    {
-        uint32_t elapsed = HAL_GetTick() - motion_start_tick;
+	// ======= NEW: Poll CAN RX FIFO0 for commands =======
+	uint32_t fillLevel = HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0);
+	if (fillLevel > 0)
+	{
+	  FDCAN_RxHeaderTypeDef RxHeader;
+	  uint8_t rxData[8];
 
-        if (cmd[0].duration_ms > 0 && elapsed >= cmd[0].duration_ms)
-            Motor1_Control(MOTOR_STATE_COAST);
+	  if (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, rxData) == HAL_OK)
+	  {
+		  // 🔹 NEW: compute DLC once, and log what we actually received
+		  uint32_t dlc_bytes = RxHeader.DataLength >> 16;
 
-        if (cmd[1].duration_ms > 0 && elapsed >= cmd[1].duration_ms)
-            Motor2_Control(MOTOR_STATE_COAST);
+		  debug_printf("[CAN] RX ID=0x%03lX, IdType=%lu, FrameType=%lu, DLC=%lu\r\n",
+					   RxHeader.Identifier,
+					   (unsigned long)RxHeader.IdType,
+					   (unsigned long)RxHeader.RxFrameType,
+					   dlc_bytes);
 
-        bool all_done = (cmd[0].duration_ms == 0 || elapsed >= cmd[0].duration_ms) &&
-                        (cmd[1].duration_ms == 0 || elapsed >= cmd[1].duration_ms);
+		  debug_printf("[CAN] Data bytes:");
+		  for (uint32_t i = 0; i < 8; i++)    // log all 8 slots
+		  {
+			  char tmp[8];
+			  snprintf(tmp, sizeof(tmp), " %02X", rxData[i]);
+			  debug_printf("%s", tmp);
+		  }
+		  debug_printf("\r\n");
 
-        if (all_done || elapsed > 10000)  // 10s safety timeout
-        {
-            motion_active = false;
-            prepared      = false;
+		  // Only handle standard data frames on ID 0x100
+		  if (RxHeader.IdType == FDCAN_STANDARD_ID &&
+		      RxHeader.RxFrameType == FDCAN_DATA_FRAME &&
+		      RxHeader.Identifier == 0x100)
+		  {
+		      uint32_t dlc_bytes = RxHeader.DataLength >> 16;
 
-            SendStatus(0x03); // DONE
+		      // 🔍 We log DLC, but we don't trust it for logic anymore
+		      debug_printf("[CAN] RX ID=0x%03lX, IdType=%lu, FrameType=%lu, DLC=%lu\r\n",
+		                   RxHeader.Identifier,
+		                   (unsigned long)RxHeader.IdType,
+		                   (unsigned long)RxHeader.RxFrameType,
+		                   dlc_bytes);
 
-            Motor1_Sleep(1);
-            Motor2_Sleep(1);
-        }
-    }
+		      debug_printf("[CAN] Data bytes:");
+		      for (uint32_t i = 0; i < 8; i++)
+		      {
+		          char tmp[8];
+		          snprintf(tmp, sizeof(tmp), " %02X", rxData[i]);
+		          debug_printf("%s", tmp);
+		      }
+		      debug_printf("\r\n");
+
+		      // ======= START: first byte 0xFF =======
+		      if (rxData[0] == 0xFF)
+		      {
+		          debug_printf("[START] received, prepared=%d\r\n",
+		                       prepared ? 1 : 0);
+
+		          if (prepared)
+		          {
+		              Motor1_Sleep(0);
+		              Motor2_Sleep(0);
+
+		              // Motor 1 direction
+		              if (cmd[0].dir > 0)
+		                  Motor1_Control(MOTOR_STATE_FORWARD);
+		              else if (cmd[0].dir < 0)
+		                  Motor1_Control(MOTOR_STATE_REVERSE);
+		              else
+		                  Motor1_Control(MOTOR_STATE_COAST);
+
+		              // Motor 2 direction
+		              if (cmd[1].dir > 0)
+		                  Motor2_Control(MOTOR_STATE_FORWARD);
+		              else if (cmd[1].dir < 0)
+		                  Motor2_Control(MOTOR_STATE_REVERSE);
+		              else
+		                  Motor2_Control(MOTOR_STATE_COAST);
+
+		              if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
+		              {
+		                  debug_printf("[START] Zero durations, immediately DONE\r\n");
+
+		                  Motor1_Sleep(1);
+		                  Motor2_Sleep(1);
+		                  prepared      = false;
+		                  motion_active = false;
+
+		                  SendStatus(0x03); // DONE
+		              }
+		              else
+		              {
+		                  motion_start_tick = HAL_GetTick();
+		                  motion_active     = true;
+
+		                  debug_printf("[START] Motion active: t1=%u t2=%u\r\n",
+		                               cmd[0].duration_ms, cmd[1].duration_ms);
+
+		                  SendStatus(0x02); // MOVING
+		              }
+		          }
+		          else
+		          {
+		              debug_printf("[START] Ignored because not prepared\r\n");
+		          }
+		      }
+		      // ======= PREPARE: assume 6-byte payload =======
+		      else
+		      {
+		          int8_t   d1 = (int8_t)rxData[0];
+		          int8_t   d2 = (int8_t)rxData[1];
+		          uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
+		          uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
+
+		          cmd[0].dir         = d1;
+		          cmd[0].duration_ms = t1;
+		          cmd[1].dir         = d2;
+		          cmd[1].duration_ms = t2;
+
+		          prepared      = true;
+		          motion_active = false;
+
+		          debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n",
+		                       d1, d2, t1, t2);
+
+		          SendStatus(0x01);   // PREPARED
+		      }
+		  }
+	  }
+	}
+
+	if (motion_active)
+	{
+		uint32_t elapsed = HAL_GetTick() - motion_start_tick;
+
+		if (cmd[0].duration_ms > 0 && elapsed >= cmd[0].duration_ms)
+			Motor1_Control(MOTOR_STATE_COAST);
+
+		if (cmd[1].duration_ms > 0 && elapsed >= cmd[1].duration_ms)
+			Motor2_Control(MOTOR_STATE_COAST);
+
+		bool all_done = (cmd[0].duration_ms == 0 || elapsed >= cmd[0].duration_ms) &&
+						(cmd[1].duration_ms == 0 || elapsed >= cmd[1].duration_ms);
+
+		if (all_done || elapsed > 10000)  // 10s safety timeout
+		{
+			motion_active = false;
+			prepared      = false;
+
+			SendStatus(0x03); // DONE
+
+			Motor1_Sleep(1);
+			Motor2_Sleep(1);
+		}
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -502,8 +637,8 @@ static void MX_FDCAN1_Init(void)
   sFilterConfig.FilterIndex  = 0;
   sFilterConfig.FilterType   = FDCAN_FILTER_MASK;
   sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-  sFilterConfig.FilterID1    = 0x100;  // ID to match
-  sFilterConfig.FilterID2    = 0x7FF;  // mask: accept only 0x100
+  sFilterConfig.FilterID1    = 0x000;  // ID to match
+  sFilterConfig.FilterID2    = 0x000;  // mask: accept only 0x100
 
   if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK)
   {

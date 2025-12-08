@@ -1,4 +1,9 @@
-from can_adapter import send_can_frame
+from can_adapter import recv_can_frame
 
-send_can_frame(0x123, b'\x11\x22\x33\x44')
-print("Sent test frame")
+while True:
+    frame = recv_can_frame(timeout=1.0)
+    if frame is None:
+        print("No frame")
+    else:
+        cid, data = frame
+        print(f"RX: ID=0x{cid:03X}, data={list(data)}")

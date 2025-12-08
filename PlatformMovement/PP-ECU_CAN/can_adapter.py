@@ -4,7 +4,7 @@ import time
 # ==========================
 # CONFIG
 # ==========================
-USB_CAN_PORT = "COM5"      # update if needed
+USB_CAN_PORT = "COM4"      # update if needed
 USB_CAN_BAUD = 115200      # matches your working demo script
 CAN_BITRATE  = 0x08       # 0x08 = 100 kbps (per Waveshare doc)
 
@@ -81,7 +81,7 @@ def init_can():
         0x55,
         0x12,
         CAN_BITRATE,  # byte 3: CAN baudrate
-        0x02,         # byte 4: frame type (extended) – same as your example
+        0x00,         # byte 4: Standard frame
         0x00, 0x00, 0x00, 0x00,  # filter ID1..4
         0x00, 0x00, 0x00, 0x00,  # mask ID1..4
         0x00,       # CAN mode: normal

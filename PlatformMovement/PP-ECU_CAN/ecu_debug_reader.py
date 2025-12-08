@@ -2,7 +2,7 @@ import serial
 import time
 
 # CHANGE THIS to the COM port that the STM32 USB-CDC shows up as
-CDC_PORT = "COM8"
+CDC_PORT = "COM5"
 CDC_BAUD = 115200  # value doesn't really matter for USB-CDC on most hosts
 
 
