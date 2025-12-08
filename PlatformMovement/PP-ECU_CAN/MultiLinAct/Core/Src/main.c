@@ -9,10 +9,30 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
+#include "usbd_cdc_if.h"
+#include <stdarg.h>
+#include <string.h>
+
+static void debug_printf(const char *fmt, ...)
+{
+    char buf[256];
+
+    va_list args;
+    va_start(args, fmt);
+    int len = vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    if (len <= 0) return;
+    if (len > sizeof(buf)) len = sizeof(buf);
+
+    CDC_Transmit_FS((uint8_t*)buf, len);
+}
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,27 +98,145 @@ void SendStatus(uint8_t code);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+//void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
+//{
+//
+//
+//	debug_printf("[IRQ] RX interrupt fired\r\n");
+//
+//    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0)
+//        return;
+//
+//    FDCAN_RxHeaderTypeDef RxHeader;
+//    uint8_t rxData[8];
+//
+//    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK)
+//        return;
+//
+//
+//    debug_printf("[IRQ] RX ID=0x%03lX DLC=%lu\r\n",
+//                 RxHeader.Identifier,
+//                 RxHeader.DataLength >> 16);
+//
+//
+//    // Only handle our command ID 0x100
+//    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME)
+//        return;
+//
+//    // PREPARE: DLC == 6 -> [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
+//    if (RxHeader.DataLength == FDCAN_DLC_BYTES_6)
+//    {
+//        int8_t d1 = (int8_t)rxData[0];
+//        int8_t d2 = (int8_t)rxData[1];
+//
+//        uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
+//        uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
+//
+//        cmd[0].dir         = d1;
+//        cmd[0].duration_ms = t1;
+//        cmd[1].dir         = d2;
+//        cmd[1].duration_ms = t2;
+//
+//        prepared      = true;
+//        motion_active = false;
+//
+//        debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n",
+//                     d1, d2, t1, t2);
+//
+//        // Tell PC we're ready
+//        SendStatus(0x01); // PREPARED
+//    }
+//    // START: DLC == 1, data[0] == 0xFF
+//    else if (RxHeader.DataLength == FDCAN_DLC_BYTES_1 && rxData[0] == 0xFF)
+//    {
+//    	debug_printf("[START] received, prepared=%d\r\n", prepared);
+//
+//        if (prepared)
+//        {
+//            Motor1_Sleep(0);
+//            Motor2_Sleep(0);
+//
+//            // Motor 1 direction
+//            if (cmd[0].dir > 0)
+//                Motor1_Control(MOTOR_STATE_FORWARD);
+//            else if (cmd[0].dir < 0)
+//                Motor1_Control(MOTOR_STATE_REVERSE);
+//            else
+//                Motor1_Control(MOTOR_STATE_COAST);
+//
+//            // Motor 2 direction
+//            if (cmd[1].dir > 0)
+//                Motor2_Control(MOTOR_STATE_FORWARD);
+//            else if (cmd[1].dir < 0)
+//                Motor2_Control(MOTOR_STATE_REVERSE);
+//            else
+//                Motor2_Control(MOTOR_STATE_COAST);
+//
+//            if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
+//            {
+//                // Nothing to move
+//                Motor1_Sleep(1);
+//                Motor2_Sleep(1);
+//                prepared      = false;
+//                motion_active = false;
+//
+//                SendStatus(0x03); // DONE
+//            }
+//            else
+//            {
+//                motion_start_tick = HAL_GetTick();
+//                motion_active     = true;
+//
+//                SendStatus(0x02); // MOVING
+//            }
+//        }
+//    }
+//}
+
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
-    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0)
+    debug_printf("[IRQ] RX interrupt fired\r\n");
+
+    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0) {
+        // Not a new message event
         return;
+    }
 
     FDCAN_RxHeaderTypeDef RxHeader;
     uint8_t rxData[8];
 
-    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK)
+    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK) {
+        debug_printf("[IRQ] HAL_FDCAN_GetRxMessage FAILED\r\n");
         return;
+    }
 
-    // Only handle our command ID 0x100
-    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME)
+    // Convert HAL DLC encoding to actual byte count (0..8)
+    uint32_t dlc_bytes = RxHeader.DataLength >> 16;
+
+    debug_printf("[IRQ] RX ID=0x%03lX DLC=%lu\r\n",
+                 RxHeader.Identifier, dlc_bytes);
+
+    debug_printf("[IRQ] Data:");
+    for (uint32_t i = 0; i < dlc_bytes; i++) {
+        char tmp[8];
+        snprintf(tmp, sizeof(tmp), " %02X", rxData[i]);
+        debug_printf("%s", tmp);
+    }
+    debug_printf("\r\n");
+
+    // Only handle our command ID 0x100 as a data frame
+    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME) {
+        debug_printf("[IRQ] Ignored frame (ID=0x%03lX, type=%lu)\r\n",
+                     RxHeader.Identifier, RxHeader.RxFrameType);
         return;
+    }
 
-    // PREPARE: DLC == 6 -> [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
-    if (RxHeader.DataLength == FDCAN_DLC_BYTES_6)
+    // ===================== PREPARE =====================
+    // Expect exactly 6 bytes: [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
+    if (dlc_bytes == 6)
     {
-        int8_t d1 = (int8_t)rxData[0];
-        int8_t d2 = (int8_t)rxData[1];
-
+        int8_t  d1 = (int8_t)rxData[0];
+        int8_t  d2 = (int8_t)rxData[1];
         uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
         uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
 
@@ -110,12 +248,19 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
         prepared      = true;
         motion_active = false;
 
+        debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n", d1, d2, t1, t2);
+
         // Tell PC we're ready
         SendStatus(0x01); // PREPARED
+        return;
     }
-    // START: DLC == 1, data[0] == 0xFF
-    else if (RxHeader.DataLength == FDCAN_DLC_BYTES_1 && rxData[0] == 0xFF)
+
+    // ====================== START ======================
+    // Any 1+ byte frame with first byte 0xFF is treated as START
+    if (dlc_bytes >= 1 && rxData[0] == 0xFF)
     {
+        debug_printf("[START] received, prepared=%d\r\n", prepared ? 1 : 0);
+
         if (prepared)
         {
             Motor1_Sleep(0);
@@ -139,7 +284,8 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 
             if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
             {
-                // Nothing to move
+                debug_printf("[START] Zero durations, immediately DONE\r\n");
+
                 Motor1_Sleep(1);
                 Motor2_Sleep(1);
                 prepared      = false;
@@ -152,11 +298,23 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
                 motion_start_tick = HAL_GetTick();
                 motion_active     = true;
 
+                debug_printf("[START] Motion active: t1=%u t2=%u\r\n",
+                             cmd[0].duration_ms, cmd[1].duration_ms);
+
                 SendStatus(0x02); // MOVING
             }
         }
+        else {
+            debug_printf("[START] Ignored because not prepared\r\n");
+        }
+
+        return;
     }
+
+    // ================== UNKNOWN CMD ====================
+    debug_printf("[IRQ] Unknown command frame (DLC=%lu)\r\n", dlc_bytes);
 }
+
 
 /* USER CODE END 0 */
 
@@ -191,6 +349,7 @@ int main(void)
   MX_GPIO_Init();
   MX_FDCAN1_Init();
   MX_TIM2_Init();
+  MX_USB_Device_Init();
   /* USER CODE BEGIN 2 */
 
   // Start with drivers asleep and coasting
@@ -203,12 +362,18 @@ int main(void)
       Error_Handler();
   }
 
+  debug_printf("FDCAN1 started\r\n");
+
+
   if (HAL_FDCAN_ActivateNotification(&hfdcan1,
                                      FDCAN_IT_RX_FIFO0_NEW_MESSAGE,
                                      0) != HAL_OK)
   {
       Error_Handler();
   }
+
+  debug_printf("FDCAN1 RX FIFO0 interrupt enabled\r\n");
+
 
   /* USER CODE END 2 */
 
@@ -263,8 +428,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
@@ -311,18 +477,18 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
-  hfdcan1.Init.NominalPrescaler = 16;
+  hfdcan1.Init.NominalPrescaler = 84;
   hfdcan1.Init.NominalSyncJumpWidth = 1;
-  hfdcan1.Init.NominalTimeSeg1 = 1;
-  hfdcan1.Init.NominalTimeSeg2 = 1;
+  hfdcan1.Init.NominalTimeSeg1 = 15;
+  hfdcan1.Init.NominalTimeSeg2 = 4;
   hfdcan1.Init.DataPrescaler = 1;
   hfdcan1.Init.DataSyncJumpWidth = 1;
   hfdcan1.Init.DataTimeSeg1 = 1;
   hfdcan1.Init.DataTimeSeg2 = 1;
-  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.StdFiltersNbr = 1;
   hfdcan1.Init.ExtFiltersNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
@@ -343,6 +509,8 @@ static void MX_FDCAN1_Init(void)
   {
       Error_Handler();
   }
+
+  debug_printf("Filter installed: ID=0x100 -> FIFO0\r\n");
 
   // Enable FDCAN1 interrupt line 0 in NVIC
   HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 0, 0);
@@ -492,12 +660,29 @@ void Motor2_Sleep(uint8_t sleep)
                       sleep ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
+//void SendStatus(uint8_t code)
+//{
+//    TxHeader.Identifier          = 0x101;
+//    TxHeader.IdType              = FDCAN_STANDARD_ID;
+//    TxHeader.TxFrameType         = FDCAN_DATA_FRAME;
+//    TxHeader.DataLength          = FDCAN_DLC_BYTES_1;
+//    TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+//    TxHeader.BitRateSwitch       = FDCAN_BRS_OFF;
+//    TxHeader.FDFormat            = FDCAN_CLASSIC_CAN;
+//    TxHeader.TxEventFifoControl  = FDCAN_NO_TX_EVENTS;
+//    TxHeader.MessageMarker       = 0;
+//
+//    txData[0] = code;
+//
+//    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, txData);
+//}
+
 void SendStatus(uint8_t code)
 {
-    TxHeader.Identifier          = 0x101;
+    TxHeader.Identifier          = 0x101;              // status ID
     TxHeader.IdType              = FDCAN_STANDARD_ID;
     TxHeader.TxFrameType         = FDCAN_DATA_FRAME;
-    TxHeader.DataLength          = FDCAN_DLC_BYTES_1;
+    TxHeader.DataLength          = FDCAN_DLC_BYTES_1;  // 1-byte payload
     TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
     TxHeader.BitRateSwitch       = FDCAN_BRS_OFF;
     TxHeader.FDFormat            = FDCAN_CLASSIC_CAN;
@@ -506,8 +691,13 @@ void SendStatus(uint8_t code)
 
     txData[0] = code;
 
-    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, txData);
+    HAL_StatusTypeDef st =
+        HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, txData);
+
+    debug_printf("[STATUS] code=0x%02X, HAL_FDCAN_AddMessageToTxFifoQ=%d\r\n",
+                 code, (int)st);
 }
+
 
 /* USER CODE END 4 */
 
