@@ -38,34 +38,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := ppecu_testV1
+BUILD_ARTIFACT_NAME := MultiLinAct
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-ppecu_testV1.elf \
+MultiLinAct.elf \
 
 MAP_FILES += \
-ppecu_testV1.map \
+MultiLinAct.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-ppecu_testV1.list \
+MultiLinAct.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: ppecu_testV1.elf secondary-outputs
+main-build: MultiLinAct.elf secondary-outputs
 
 # Tool invocations
-ppecu_testV1.elf ppecu_testV1.map: $(OBJS) $(USER_OBJS) C:\Users\jacob\STM32CubeIDE\workspace_1.18.0\ppecu_testV1\STM32G431CBUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ppecu_testV1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\jacob\STM32CubeIDE\workspace_1.18.0\ppecu_testV1\STM32G431CBUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ppecu_testV1.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+MultiLinAct.elf MultiLinAct.map: $(OBJS) $(USER_OBJS) C:\Users\jacob\Documents\GitHub\MonashBEST\PlatformMovement\Original\MultiLinAct\STM32G431CBUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "MultiLinAct.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\jacob\Documents\GitHub\MonashBEST\PlatformMovement\Original\MultiLinAct\STM32G431CBUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MultiLinAct.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -74,14 +74,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-ppecu_testV1.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "ppecu_testV1.list"
+MultiLinAct.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "MultiLinAct.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) default.size.stdout ppecu_testV1.elf ppecu_testV1.list ppecu_testV1.map
+	-$(RM) MultiLinAct.elf MultiLinAct.list MultiLinAct.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

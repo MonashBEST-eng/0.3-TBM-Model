@@ -1,0 +1,10 @@
+12:32:57 **** Incremental Build of configuration Debug for project MultiLinAct ****
+make -j12 all 
+arm-none-eabi-size  MultiLinAct.elf 
+   text	   data	    bss	    dec	    hex	filename
+  37648	    468	   6660	  44776	   aee8	MultiLinAct.elf
+Finished building: default.size.stdout
+ 
+
+12:32:58 Build Finished. 0 errors, 0 warnings. (took 1s.38ms)
+
