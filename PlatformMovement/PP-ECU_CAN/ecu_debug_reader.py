@@ -5,7 +5,6 @@ import time
 CDC_PORT = "COM5"
 CDC_BAUD = 115200  # value doesn't really matter for USB-CDC on most hosts
 
-
 def main():
     print(f"Opening ECU debug port {CDC_PORT}...")
     ser = serial.Serial(CDC_PORT, CDC_BAUD, timeout=0.1)

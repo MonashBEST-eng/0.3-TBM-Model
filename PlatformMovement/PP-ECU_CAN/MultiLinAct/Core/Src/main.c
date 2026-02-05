@@ -98,230 +98,6 @@ void SendStatus(uint8_t code);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-//void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-//{
-//
-//
-//	debug_printf("[IRQ] RX interrupt fired\r\n");
-//
-//    if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0)
-//        return;
-//
-//    FDCAN_RxHeaderTypeDef RxHeader;
-//    uint8_t rxData[8];
-//
-//    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK)
-//        return;
-//
-//
-//    debug_printf("[IRQ] RX ID=0x%03lX DLC=%lu\r\n",
-//                 RxHeader.Identifier,
-//                 RxHeader.DataLength >> 16);
-//
-//
-//    // Only handle our command ID 0x100
-//    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME)
-//        return;
-//
-//    // PREPARE: DLC == 6 -> [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
-//    if (RxHeader.DataLength == FDCAN_DLC_BYTES_6)
-//    {
-//        int8_t d1 = (int8_t)rxData[0];
-//        int8_t d2 = (int8_t)rxData[1];
-//
-//        uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
-//        uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
-//
-//        cmd[0].dir         = d1;
-//        cmd[0].duration_ms = t1;
-//        cmd[1].dir         = d2;
-//        cmd[1].duration_ms = t2;
-//
-//        prepared      = true;
-//        motion_active = false;
-//
-//        debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n",
-//                     d1, d2, t1, t2);
-//
-//        // Tell PC we're ready
-//        SendStatus(0x01); // PREPARED
-//    }
-//    // START: DLC == 1, data[0] == 0xFF
-//    else if (RxHeader.DataLength == FDCAN_DLC_BYTES_1 && rxData[0] == 0xFF)
-//    {
-//    	debug_printf("[START] received, prepared=%d\r\n", prepared);
-//
-//        if (prepared)
-//        {
-//            Motor1_Sleep(0);
-//            Motor2_Sleep(0);
-//
-//            // Motor 1 direction
-//            if (cmd[0].dir > 0)
-//                Motor1_Control(MOTOR_STATE_FORWARD);
-//            else if (cmd[0].dir < 0)
-//                Motor1_Control(MOTOR_STATE_REVERSE);
-//            else
-//                Motor1_Control(MOTOR_STATE_COAST);
-//
-//            // Motor 2 direction
-//            if (cmd[1].dir > 0)
-//                Motor2_Control(MOTOR_STATE_FORWARD);
-//            else if (cmd[1].dir < 0)
-//                Motor2_Control(MOTOR_STATE_REVERSE);
-//            else
-//                Motor2_Control(MOTOR_STATE_COAST);
-//
-//            if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
-//            {
-//                // Nothing to move
-//                Motor1_Sleep(1);
-//                Motor2_Sleep(1);
-//                prepared      = false;
-//                motion_active = false;
-//
-//                SendStatus(0x03); // DONE
-//            }
-//            else
-//            {
-//                motion_start_tick = HAL_GetTick();
-//                motion_active     = true;
-//
-//                SendStatus(0x02); // MOVING
-//            }
-//        }
-//    }
-//}
-
-//void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-//{
-//    (void)RxFifo0ITs;  // we ignore the flags for now
-//    debug_printf("[IRQ] RX interrupt fired\r\n");
-//
-//    FDCAN_RxHeaderTypeDef RxHeader;
-//    uint8_t rxData[8];
-//
-//    // Always try to fetch one frame from FIFO0
-//    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK)
-//    {
-//        debug_printf("[IRQ] HAL_FDCAN_GetRxMessage FAILED\r\n");
-//        return;
-//    }
-//
-//    // Convert HAL DLC encoding to actual byte count (0..8)
-//    uint32_t dlc_bytes = RxHeader.DataLength >> 16;
-//
-//    debug_printf("[IRQ] RX ID=0x%03lX DLC=%lu, IdType=%lu, FrameType=%lu\r\n",
-//                 RxHeader.Identifier,
-//                 dlc_bytes,
-//                 (unsigned long)RxHeader.IdType,
-//                 (unsigned long)RxHeader.RxFrameType);
-//
-//    debug_printf("[IRQ] Data:");
-//    for (uint32_t i = 0; i < dlc_bytes; i++)
-//    {
-//        char tmp[8];
-//        snprintf(tmp, sizeof(tmp), " %02X", rxData[i]);
-//        debug_printf("%s", tmp);
-//    }
-//    debug_printf("\r\n");
-//
-//    // Only handle our command ID 0x100 as a data frame
-//    if (RxHeader.Identifier != 0x100 || RxHeader.RxFrameType != FDCAN_DATA_FRAME)
-//    {
-//        debug_printf("[IRQ] Ignored frame (ID=0x%03lX, type=%lu)\r\n",
-//                     RxHeader.Identifier,
-//                     (unsigned long)RxHeader.RxFrameType);
-//        return;
-//    }
-//
-//    // ===================== PREPARE =====================
-//    // Expect exactly 6 bytes: [d1, d2, t1_lo, t1_hi, t2_lo, t2_hi]
-//    if (dlc_bytes == 6)
-//    {
-//        int8_t   d1 = (int8_t)rxData[0];
-//        int8_t   d2 = (int8_t)rxData[1];
-//        uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
-//        uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
-//
-//        cmd[0].dir         = d1;
-//        cmd[0].duration_ms = t1;
-//        cmd[1].dir         = d2;
-//        cmd[1].duration_ms = t2;
-//
-//        prepared      = true;
-//        motion_active = false;
-//
-//        debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n", d1, d2, t1, t2);
-//
-//        // Tell PC we're ready
-//        SendStatus(0x01); // PREPARED
-//        return;
-//    }
-//
-//    // ====================== START ======================
-//    // Any 1+ byte frame with first byte 0xFF is treated as START
-//    if (dlc_bytes >= 1 && rxData[0] == 0xFF)
-//    {
-//        debug_printf("[START] received, prepared=%d\r\n", prepared ? 1 : 0);
-//
-//        if (prepared)
-//        {
-//            Motor1_Sleep(0);
-//            Motor2_Sleep(0);
-//
-//            // Motor 1 direction
-//            if (cmd[0].dir > 0)
-//                Motor1_Control(MOTOR_STATE_FORWARD);
-//            else if (cmd[0].dir < 0)
-//                Motor1_Control(MOTOR_STATE_REVERSE);
-//            else
-//                Motor1_Control(MOTOR_STATE_COAST);
-//
-//            // Motor 2 direction
-//            if (cmd[1].dir > 0)
-//                Motor2_Control(MOTOR_STATE_FORWARD);
-//            else if (cmd[1].dir < 0)
-//                Motor2_Control(MOTOR_STATE_REVERSE);
-//            else
-//                Motor2_Control(MOTOR_STATE_COAST);
-//
-//            if (cmd[0].duration_ms == 0 && cmd[1].duration_ms == 0)
-//            {
-//                debug_printf("[START] Zero durations, immediately DONE\r\n");
-//
-//                Motor1_Sleep(1);
-//                Motor2_Sleep(1);
-//                prepared      = false;
-//                motion_active = false;
-//
-//                SendStatus(0x03); // DONE
-//            }
-//            else
-//            {
-//                motion_start_tick = HAL_GetTick();
-//                motion_active     = true;
-//
-//                debug_printf("[START] Motion active: t1=%u t2=%u\r\n",
-//                             cmd[0].duration_ms, cmd[1].duration_ms);
-//
-//                SendStatus(0x02); // MOVING
-//            }
-//        }
-//        else
-//        {
-//            debug_printf("[START] Ignored because not prepared\r\n");
-//        }
-//
-//        return;
-//    }
-//
-//    // ================== UNKNOWN CMD ====================
-//    debug_printf("[IRQ] Unknown command frame (DLC=%lu, first=0x%02X)\r\n",
-//                 dlc_bytes, (dlc_bytes > 0) ? rxData[0] : 0x00);
-//}
-
-
 /* USER CODE END 0 */
 
 /**
@@ -415,29 +191,25 @@ int main(void)
 		  debug_printf("\r\n");
 
 		  // Only handle standard data frames on ID 0x100
+		  // ===================== CAN RX =====================
 		  if (RxHeader.IdType == FDCAN_STANDARD_ID &&
 		      RxHeader.RxFrameType == FDCAN_DATA_FRAME &&
 		      RxHeader.Identifier == 0x100)
 		  {
-		      uint32_t dlc_bytes = RxHeader.DataLength >> 16;
+		      uint32_t dlc_bytes_inner = RxHeader.DataLength >> 16;
 
-		      // 🔍 We log DLC, but we don't trust it for logic anymore
-		      debug_printf("[CAN] RX ID=0x%03lX, IdType=%lu, FrameType=%lu, DLC=%lu\r\n",
-		                   RxHeader.Identifier,
-		                   (unsigned long)RxHeader.IdType,
-		                   (unsigned long)RxHeader.RxFrameType,
-		                   dlc_bytes);
+		      debug_printf("[CAN] RX ID=0x%03lX, DLC=%lu\r\n",
+		                   RxHeader.Identifier, dlc_bytes_inner);
 
 		      debug_printf("[CAN] Data bytes:");
-		      for (uint32_t i = 0; i < 8; i++)
-		      {
+		      for (int i = 0; i < 8; i++) {
 		          char tmp[8];
 		          snprintf(tmp, sizeof(tmp), " %02X", rxData[i]);
 		          debug_printf("%s", tmp);
 		      }
 		      debug_printf("\r\n");
 
-		      // ======= START: first byte 0xFF =======
+		      // ======= START command (first byte = 0xFF) =======
 		      if (rxData[0] == 0xFF)
 		      {
 		          debug_printf("[START] received, prepared=%d\r\n",
@@ -480,8 +252,9 @@ int main(void)
 		                  motion_start_tick = HAL_GetTick();
 		                  motion_active     = true;
 
-		                  debug_printf("[START] Motion active: t1=%u t2=%u\r\n",
-		                               cmd[0].duration_ms, cmd[1].duration_ms);
+		                  debug_printf("[START] Motion active: t1=%lu t2=%lu\r\n",
+		                               (unsigned long)cmd[0].duration_ms,
+		                               (unsigned long)cmd[1].duration_ms);
 
 		                  SendStatus(0x02); // MOVING
 		              }
@@ -491,11 +264,26 @@ int main(void)
 		              debug_printf("[START] Ignored because not prepared\r\n");
 		          }
 		      }
-		      // ======= PREPARE: assume 6-byte payload =======
+		      // ======= PREPARE command (first byte != 0xFF) =======
 		      else
 		      {
-		          int8_t   d1 = (int8_t)rxData[0];
-		          int8_t   d2 = (int8_t)rxData[1];
+		          int8_t d1 = 0;
+		          int8_t d2 = 0;
+
+		          // decode dir1
+		          switch (rxData[0]) {
+		              case 0x01: d1 = +1; break;  // extend
+		              case 0x02: d1 = -1; break;  // retract
+		              default:   d1 =  0; break;  // stop / unknown
+		          }
+
+		          // decode dir2
+		          switch (rxData[1]) {
+		              case 0x01: d2 = +1; break;  // extend
+		              case 0x02: d2 = -1; break;  // retract
+		              default:   d2 =  0; break;
+		          }
+
 		          uint16_t t1 = (uint16_t)rxData[2] | ((uint16_t)rxData[3] << 8);
 		          uint16_t t2 = (uint16_t)rxData[4] | ((uint16_t)rxData[5] << 8);
 
@@ -510,7 +298,7 @@ int main(void)
 		          debug_printf("[PREPARE] d1=%d d2=%d t1=%u t2=%u\r\n",
 		                       d1, d2, t1, t2);
 
-		          SendStatus(0x01);   // PREPARED
+		          SendStatus(0x01);  // PREPARED
 		      }
 		  }
 	  }

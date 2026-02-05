@@ -4,7 +4,7 @@ import time
 # ==========================
 # CONFIG
 # ==========================
-USB_CAN_PORT = "COM4"      # update if needed
+USB_CAN_PORT = "COM6"      # update if needed
 USB_CAN_BAUD = 115200      # matches your working demo script
 CAN_BITRATE  = 0x08       # 0x08 = 100 kbps (per Waveshare doc)
 

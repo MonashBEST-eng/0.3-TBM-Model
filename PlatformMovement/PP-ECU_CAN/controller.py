@@ -91,11 +91,24 @@ class StewartController:
 
 
     # ===================== CAN HELPERS =====================
+    def _encode_dir(self, d: int) -> int:
+        """
+        Map signed direction (-1, 0, +1) to explicit CAN codes:
+          0x00 = stop
+          0x01 = extend
+          0x02 = retract
+        """
+        if d > 0:
+            return 0x01  # extend
+        elif d < 0:
+            return 0x02  # retract
+        else:
+            return 0x00  # no move
+
     def _can_send_prepare(self, d1, t1_ms, d2, t2_ms):
         """Send PREPARE command over CAN."""
-        # encode dirs (-1,0,1) as uint8
-        b1 = d1 & 0xFF
-        b2 = d2 & 0xFF
+        b1 = self._encode_dir(d1)
+        b2 = self._encode_dir(d2)
 
         data = bytes([
             b1,
@@ -106,6 +119,7 @@ class StewartController:
             (t2_ms >> 8) & 0xFF
         ])
         send_can_frame(0x100, data)
+
 
     def _can_send_start(self):
         """Send START command over CAN."""
