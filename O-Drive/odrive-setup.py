@@ -12,12 +12,9 @@ def print_axis_error_codes(axis, axis_name):
 
 def configure_axis(axis):
     axis.motor.config.current_lim = 10
-    axis.controller.config.vel_limit = 10
-    axis.controller.config.vel_gain = 0.1
-    axis.controller.config.vel_integrator_gain = 0.5
+    axis.controller.config.vel_limit = 30
     axis.controller.config.control_mode = CONTROL_MODE_VELOCITY_CONTROL
     axis.controller.config.input_mode = INPUT_MODE_PASSTHROUGH
-    axis.controller.config.vel_ramp_rate = 5     # turns/s^2, tune as needed
 
     axis.motor.config.pole_pairs = 4
     axis.motor.config.torque_constant = 0.5
@@ -63,8 +60,22 @@ def enter_closed_loop(axis, odrv, axis_name, velocity):
     print(f"{axis_name} running at {velocity} turns/s")
 
 if __name__ == "__main__":
+
+
     print("Connecting to ODrive...")
     odrv0 = odrive.find_any()
+
+    # print("Erasing configuration...")
+    # try:
+    #     odrv0.erase_configuration()
+    # except Exception:
+    #     # Connection is expected to drop during reboot
+    #     pass
+
+    # time.sleep(5)
+
+    # print("Reconnecting...")
+    # odrv0 = odrive.find_any()
 
     print("Clearing errors...")
     odrv0.axis0.error = 0
@@ -84,7 +95,7 @@ if __name__ == "__main__":
     except Exception:
         pass
 
-    time.sleep(5)
+    time.sleep(2)
 
     print("Reconnecting...")
     odrv0 = odrive.find_any()
@@ -93,7 +104,7 @@ if __name__ == "__main__":
     odrv0.axis0.error = 0
     odrv0.axis1.error = 0
     
-    # calibrate_axis(odrv0.axis0, odrv0, "axis0")
+    calibrate_axis(odrv0.axis0, odrv0, "axis0")
     calibrate_axis(odrv0.axis1, odrv0, "axis1")
 
     print("Saving calibration and CAN config...")
@@ -102,43 +113,23 @@ if __name__ == "__main__":
     odrv0.axis1.config.can_node_id = 1
     odrv0.save_configuration()
 
-    print(odrv0.axis0.motor.gate_driver.drv_fault)
-    print(odrv0.axis1.motor.gate_driver.drv_fault)
+    enter_closed_loop(odrv0.axis0, odrv0, "axis0", velocity=1.5)
+    enter_closed_loop(odrv0.axis1, odrv0, "axis1", velocity=1.5)
 
-    # enter_closed_loop(odrv0.axis0, odrv0, "axis0", velocity=0.5)
-    # time.sleep(3)
-    enter_closed_loop(odrv0.axis1, odrv0, "axis1", velocity=0.5)
-    odrv0.axis1.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
-    time.sleep(0.1)
-    print(odrv0.axis1.current_state)
-    time.sleep(3)
-    print(odrv0.axis1.current_state)
-
-    
 
     print("Setup complete.")
     print("Motors running. Press Ctrl+C to stop.")
 
-    odrv0.axis1.controller.config.control_mode = CONTROL_MODE_TORQUE_CONTROL
-    odrv0.axis1.controller.input_torque = 0.1
-
     try:
         while True:
-            odrv0.axis1.controller.input_vel = 1.0
 
-            print("state:", odrv0.axis1.current_state)
-            print("input_vel:", odrv0.axis1.controller.input_vel)
-            print("vel_estimate:", odrv0.axis1.encoder.vel_estimate)
-
-            print("axis.error:", odrv0.axis1.error)
-            print("motor.error:", odrv0.axis1.motor.error)
-            print("encoder.error:", odrv0.axis1.encoder.error)
-            print("controller.error:", odrv0.axis1.controller.error)
-            print()
-
-        time.sleep(0.5)
+            time.sleep(1)
 
     except KeyboardInterrupt:
         print("Stopping motors...")
-        odrv0.axis0.controller.input_vel = 0
-        odrv0.axis1.controller.input_vel = 0
+        odrv0.axis0.requested_state = AXIS_STATE_IDLE
+        odrv0.axis1.requested_state = AXIS_STATE_IDLE
+        print("Stopping motors...")
+        dump_errors(odrv0)
+
+        
