@@ -65,8 +65,8 @@ try:
     print("Sending velocity to both ODrive axes... Ctrl+C to stop.")
 
     while True:
-        send_vel(AXIS0_NODE_ID, 2.0)
-        send_vel(AXIS1_NODE_ID, 2.0)
+        send_vel(AXIS0_NODE_ID, 25)
+        send_vel(AXIS1_NODE_ID, 25)
         time.sleep(0.05)
 
 except KeyboardInterrupt:

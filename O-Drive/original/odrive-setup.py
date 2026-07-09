@@ -12,7 +12,7 @@ def print_axis_error_codes(axis, axis_name):
 
 def configure_axis(axis):
     axis.motor.config.current_lim = 10
-    axis.controller.config.vel_limit = 30
+    axis.controller.config.vel_limit = 50
     axis.controller.config.control_mode = CONTROL_MODE_VELOCITY_CONTROL
     axis.controller.config.input_mode = INPUT_MODE_PASSTHROUGH
 
@@ -113,8 +113,8 @@ if __name__ == "__main__":
     odrv0.axis1.config.can_node_id = 1
     odrv0.save_configuration()
 
-    enter_closed_loop(odrv0.axis0, odrv0, "axis0", velocity=1.5)
-    enter_closed_loop(odrv0.axis1, odrv0, "axis1", velocity=1.5)
+    enter_closed_loop(odrv0.axis0, odrv0, "axis0", velocity=25)
+    enter_closed_loop(odrv0.axis1, odrv0, "axis1", velocity=25)
 
 
     print("Setup complete.")
