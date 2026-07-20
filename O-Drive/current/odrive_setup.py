@@ -20,14 +20,14 @@ from odrive.utils import dump_errors
 
 # --- Variables -------------------------------------------------------------
 CURRENT_LIM = 10          # A
-VEL_LIMIT = 50            # turns/s
+VEL_LIMIT = 25           # turns/s
 POLE_PAIRS = 4
 TORQUE_CONSTANT = 0.5     # Nm/A
 CALIB_SCAN_DISTANCE = 150
 CALIBRATION_CURRENT = 3   # A
 ENCODER_CPR = 24
 CAN_BAUD_RATE = 250000
-RUN_VELOCITY = 10         # turns/s, sent to axis0 (master)
+RUN_VELOCITY = 5         # turns/s, sent to axis0 (master)
 BRAKE_RESISTANCE = 2      # ohms
 MIRROR_RATIO = -1.0       # set by direction check: gears mesh opposite sides
 REBOOT_SETTLE_TIME = 2    # s
