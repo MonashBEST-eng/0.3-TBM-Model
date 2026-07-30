@@ -21,9 +21,9 @@ AXIS_STATE_IDLE = 1
 LOOP_PERIOD = 0.05  # 20 Hz
 CLOSED_LOOP_TIMEOUT = 5.0  # s to wait for both axes to confirm state
 CRUISE_VELOCITY = 5.0     # turns/s — target speed used by "start"
-VELOCITY_STEP = 1.0      # turns/s — change per "+"/"-" command
-MAX_VELOCITY = 25.0       # turns/s — safety ceiling for target speed
-RAMP_RATE = 2.0           # turns/s^2 — how fast current_velocity chases target
+VELOCITY_STEP = 2.0      # turns/s — change per "+"/"-" command
+MAX_VELOCITY = 30.0       # turns/s — safety ceiling for target speed
+RAMP_RATE = 1.0           # turns/s^2 — how fast current_velocity chases target
  
 bus = can.interface.Bus(
     interface=BUS_INTERFACE,

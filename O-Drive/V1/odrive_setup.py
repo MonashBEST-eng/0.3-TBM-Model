@@ -20,7 +20,7 @@ from odrive.utils import dump_errors
 
 # --- Variables -------------------------------------------------------------
 CURRENT_LIM = 10          # A
-VEL_LIMIT = 25           # turns/s
+VEL_LIMIT = 50           # turns/s
 POLE_PAIRS = 4
 TORQUE_CONSTANT = 0.5     # Nm/A
 CALIB_SCAN_DISTANCE = 150
@@ -106,24 +106,6 @@ def stop_axes(odrv0):
 def main():
     print("Connecting to ODrive...")
     odrv0 = odrive.find_any()
-
-    # Uncomment to fully reset the board before reconfiguring:
-
-    # print("Erasing configuration...")
-
-    # try:
-
-    #     odrv0.erase_configuration()
-
-    # except Exception:
-
-    #     pass  # connection drop during reboot is expected
-
-    # time.sleep(5)
-
-    # print("Reconnecting...")
-
-    # odrv0 = odrive.find_any()
  
     print("Clearing errors...")
     clear_axis_errors(odrv0)
