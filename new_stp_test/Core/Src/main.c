@@ -18,7 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "math.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -48,8 +48,23 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
 
+//TIMERS
+typedef struct {
+    uint32_t now;
+    uint32_t sec_marker;
+    uint32_t count;
+} timer;
+
+volatile timer timer1;
+volatile timer timer2;
+volatile timer timer3_CAN_UDS;
+volatile uint8_t timer1_flag = 0U;
+
+//Motor states and stuff
 typedef enum {
 	SLEEP_STANDBY, // 0 0
 	FORWARD_STANDBY, // 1 0
@@ -59,12 +74,33 @@ typedef enum {
     BRAKE,
 } motor_state;
 
+typedef struct{
+	uint16_t ticks;
+	uint16_t motorspeed;
+} motor;
+
+uint8_t mode = 1;
+
 uint32_t full_cycle =  4249;
 
 uint32_t p_pins = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
 uint32_t n_pins = GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9;
 motor_state STP_dir;
 
+
+uint8_t state = 0;
+
+
+static motor motor1;
+static motor motor2;
+static motor motor3;
+static motor motor4;
+static motor motor5;
+static motor motor6;
+//
+//Motor states and stuff
+
+//
 
 
 /* USER CODE END PV */
@@ -76,7 +112,23 @@ static void MX_FDCAN1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
+timer start_timer()
+{
+	timer timer;
+    timer.now = HAL_GetTick();
+    timer.sec_marker = 0U;
+    timer.count = 0;
+    return timer;
+}
+
+uint32_t elapsed(timer timer)
+{
+    return (uint32_t)(HAL_GetTick() - timer.now);
+}
+
+
 void go(){
 	if(STP_dir == FORWARD_STANDBY){
 	}
@@ -174,7 +226,7 @@ void changespeed(uint8_t newspeed){
 		Error_Handler();
 	}
 
-	int new_on =  round(full_cycle*newspeed/100);
+	int new_on =  full_cycle*newspeed/100;
 	TIM2->CCR1 = new_on;
 	TIM2->CCR2 = new_on;
 	TIM2->CCR3 = new_on;
@@ -183,6 +235,17 @@ void changespeed(uint8_t newspeed){
 	TIM3->CCR2 = new_on;
 
 }
+
+void go_increment(increment){
+	go();
+}
+
+
+void testCAN()
+{
+
+}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -198,8 +261,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	STP_dir = SLEEP_STANDBY;
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -208,7 +269,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  //uint32_t now = HAL_GetTick();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -218,13 +279,20 @@ int main(void)
 
   /* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
+
   MX_GPIO_Init();
   MX_FDCAN1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Transmit(
+      &huart2,
+      (uint8_t *)"STM32 started\r\n",
+      sizeof("STM32 started\r\n") - 1,
+      HAL_MAX_DELAY
+  );
 
   /* USER CODE END 2 */
 
@@ -234,7 +302,7 @@ int main(void)
   /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
   BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
+  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */ /*
   BspCOMInit.BaudRate   = 115200;
   BspCOMInit.WordLength = COM_WORDLENGTH_8B;
   BspCOMInit.StopBits   = COM_STOPBITS_1;
@@ -244,32 +312,99 @@ int main(void)
   {
     Error_Handler();
   }
-
+  HAL_UART_Transmit(
+      &huart2,
+      (uint8_t *)"AFTER BSP\r\n",
+      sizeof("AFTER BSP\r\n") - 1,
+      1000
+  );
+*/
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_FDCAN_Start(&hfdcan1);
+
+
+  FDCAN_TxHeaderTypeDef count;
+
+  count.Identifier = 0x123;
+  count.IdType = FDCAN_STANDARD_ID;
+  count.TxFrameType = FDCAN_DATA_FRAME;
+  count.DataLength = FDCAN_DLC_BYTES_8;
+  count.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  count.BitRateSwitch = FDCAN_BRS_OFF;
+  count.FDFormat = FDCAN_CLASSIC_CAN;
+  count.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+  count.MessageMarker = 0;
+  uint8_t CAN_counter = 0;
+  static char uart_buffer[64];
+
+
   while (1)
   {
-	  // testing go brake sleep back sleep, worked on leds
-	  go();
-	  HAL_Delay(3000);
 
-	  brake();
-	  HAL_Delay(1000);
 
-	  sleep();
-	  HAL_Delay(1000);
 
-	  back();
-	  HAL_Delay(3000);
+	  //Task 1: LED toggle
+	  	  uint32_t elapsed_time2 = elapsed(timer2);
+	  	      if (elapsed_time2 - timer2.sec_marker >= 50U){
+	  	    	  //BSP_LED_Toggle(LED_GREEN);
+	  	    	  timer2.sec_marker += 50U;
+	  	      }
 
-	  sleep();
-	  HAL_Delay(1000);
 
-	  break;
+	  //Task 2 (Interrupt): Uart Signalling
+
+	  if (timer1_flag == 1U){
+		  uint32_t elapsed_time = elapsed(timer1);
+	      if (elapsed_time - timer1.sec_marker >= 1000U){
+
+	    	  timer1.sec_marker += 1000U;
+			  timer1.count++;
+			  int length = snprintf(
+			  					  uart_buffer,
+			  					  sizeof(uart_buffer),
+			  					  "%lu\r\n",
+			  					  (unsigned long)(motor1.ticks)
+			  					  );
+
+			  HAL_UART_Transmit(
+					  &huart2,
+					  (uint8_t *)uart_buffer,
+					  length,
+					  HAL_MAX_DELAY
+					  );
+	      }
+	  }
+
+	  //Task 3: CAN transmit
+	  uint32_t elapsed_timeCAN = elapsed(timer3_CAN_UDS);
+	  if (elapsed_timeCAN - timer3_CAN_UDS.sec_marker >= 1000U){
+		  uint8_t countData[8];
+		  countData[0] = CAN_counter++;
+	      countData[1] = 0;
+		  countData[2] = 0;
+		  countData[3] = 0;
+		  countData[4] = 0;
+		  countData[5] = 0;
+		  countData[6] = 0;
+		  countData[7] = 0;
+		  HAL_StatusTypeDef txStatus =
+			  HAL_FDCAN_AddMessageToTxFifoQ(
+				  &hfdcan1,
+				  &count,
+				  countData
+				  );
+		  timer3_CAN_UDS.sec_marker += 1000U;
+
+		}
+
+
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+}
 
   /* USER CODE END 3 */
 }
@@ -495,13 +630,14 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 4200;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
+  sConfigOC.Pulse = 2125;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
@@ -573,7 +709,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 4200;
+  sConfigOC.Pulse = 2125;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -588,6 +724,54 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 2 */
   HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
@@ -617,6 +801,14 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, M1P_Pin|M2P_Pin|M3P_Pin|M4P_Pin
                           |M5P_Pin|M6P_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pins : HALL_1A_Pin HALL_2A_Pin HALL_3A_Pin HALL_4A_Pin
+                           HALL_5A_Pin HALL_6A_Pin */
+  GPIO_InitStruct.Pin = HALL_1A_Pin|HALL_2A_Pin|HALL_3A_Pin|HALL_4A_Pin
+                          |HALL_5A_Pin|HALL_6A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pins : M1N_Pin M2N_Pin M3N_Pin M4N_Pin
                            M5N_Pin M6N_Pin */
   GPIO_InitStruct.Pin = M1N_Pin|M2N_Pin|M3N_Pin|M4N_Pin
@@ -635,13 +827,101 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : HALL_1B_Pin HALL_2B_Pin HALL_3B_Pin HALL_4B_Pin */
+  GPIO_InitStruct.Pin = HALL_1B_Pin|HALL_2B_Pin|HALL_3B_Pin|HALL_4B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : HALL_5B_Pin HALL_6B_Pin */
+  GPIO_InitStruct.Pin = HALL_5B_Pin|HALL_6B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+void BSP_PB_Callback(Button_TypeDef Button)
+{
+    if (Button == BUTTON_USER)
+    {
+        timer1 = start_timer();
+        timer1_flag = 1U;
+    }
+}
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == HALL_1A_Pin){
+		motor1.ticks++;}
+
+	else if(GPIO_Pin == HALL_2A_Pin){
+		if((HALL_2B_GPIO_Port -> IDR & HALL_2B_Pin) != 0U){ // reading the input of HALL 1B as 1
+			motor2.ticks++;
+		}
+		else{
+			motor2.ticks--;
+		}
+
+	}
+	else if(GPIO_Pin == HALL_3A_Pin){
+		if((HALL_3B_GPIO_Port -> IDR & HALL_3B_Pin) != 0U){ // reading the input of HALL 1B as 1
+			motor3.ticks++;
+		}
+		else{
+			motor3.ticks--;
+		}
+	}
+	else if(GPIO_Pin == HALL_3A_Pin){
+		if((HALL_4B_GPIO_Port -> IDR & HALL_4B_Pin) != 0U){ // reading the input of HALL 1B as 1
+			motor4.ticks++;
+		}
+		else{
+			motor4.ticks--;
+		}
+	}
+	else if(GPIO_Pin == HALL_3A_Pin){
+		if((HALL_5B_GPIO_Port -> IDR & HALL_5B_Pin) != 0U){ // reading the input of HALL 1B as 1
+			motor5.ticks++;
+		}
+		else{
+			motor5.ticks--;
+		}
+	}
+	else if(GPIO_Pin == HALL_3A_Pin){
+		if((HALL_6B_GPIO_Port -> IDR & HALL_6B_Pin) != 0U){ // reading the input of HALL 1B as 1
+			motor6.ticks++;
+		}
+		else{
+			motor6.ticks--;
+		}
+	}
+
+	else
+	{
+      __NOP();
+	}
+}
 /* USER CODE END 4 */
 
 /**
