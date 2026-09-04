@@ -1,0 +1,15 @@
+../Core/Src/mcp2515.c:26:19:MCP2515_GetLastSpiStatus	1
+../Core/Src/mcp2515.c:35:13:MCP2515_SpiTransmit	1
+../Core/Src/mcp2515.c:40:13:MCP2515_SpiTransmitReceive	1
+../Core/Src/mcp2515.c:45:9:MCP2515_ReadRegister	1
+../Core/Src/mcp2515.c:57:6:MCP2515_WriteRegister	1
+../Core/Src/mcp2515.c:66:6:MCP2515_ModifyRegister	1
+../Core/Src/mcp2515.c:75:9:MCP2515_ReadStatus	1
+../Core/Src/mcp2515.c:87:13:MCP2515_Reset	1
+../Core/Src/mcp2515.c:98:26:MCP2515_SetMode	3
+../Core/Src/mcp2515.c:119:19:MCP2515_Init	2
+../Core/Src/mcp2515.c:162:19:MCP2515_SendMessage	5
+../Core/Src/mcp2515.c:217:9:MCP2515_CheckReceive	1
+../Core/Src/mcp2515.c:223:26:MCP2515_ReadBuffer	4
+../Core/Src/mcp2515.c:278:19:MCP2515_ReadMessage	3
+../Core/Src/mcp2515.c:298:19:MCP2515_LoopbackSelfTest	7
