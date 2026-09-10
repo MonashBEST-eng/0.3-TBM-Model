@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <math.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -65,43 +66,45 @@ volatile timer timer3_CAN_UDS;
 volatile uint8_t timer1_flag = 0U;
 
 //Motor states and stuff
-typedef enum {
-	SLEEP_STANDBY, // 0 0
-	FORWARD_STANDBY, // 1 0
-	BACKWARD_STANDBY, // 0 1
-	FORWARD,
-    BACKWARD,
-    BRAKE,
-} motor_state;
+#define NUM_MOTORS 2
+#define RUN_CALIBRATION_ON_BOOT 1U
+#define CALIBRATION_TICKS       500U
+#define CALIBRATION_DUTY        (full_cycle / 4U)
+#define CALIBRATION_TIMEOUT_MS  15000U
 
-typedef struct{
-	uint16_t ticks;
-	uint16_t motorspeed;
+typedef struct {
+    volatile int32_t ticks;            // net position, signed: +forward, -backward
+    volatile uint32_t distance_ticks;  // ALWAYS increments regardless of direction.
+                                        // This is what a distance "quota" checks against.
+    volatile uint32_t total_ticks;     // lifetime Hall edges since this boot
+    uint32_t target_ticks;             // quota target for the current move, in pulses
+    volatile uint8_t active;           // 1 while this motor is still moving toward target
 } motor;
 
-uint8_t mode = 1;
+static motor motors[NUM_MOTORS];
 
-uint32_t full_cycle =  4249;
+// Per-motor hardware mapping: which timer/channel drives it, which GPIO pins
+// set its direction, and which Hall pins belong to it.
+typedef struct {
+    TIM_HandleTypeDef *htim;
+    uint32_t channel;
+    uint16_t p_pin;          // forward-direction pin, on GPIOB
+    uint16_t n_pin;          // backward-direction pin, on GPIOC
+    uint16_t hall_a_pin;     // interrupt pin, on GPIOC
+    GPIO_TypeDef *hall_b_port;
+    uint16_t hall_b_pin;     // direction-sense pin, read (not interrupt)
+} MotorHW;
 
-uint32_t p_pins = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
-uint32_t n_pins = GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9;
-motor_state STP_dir;
+static MotorHW motors_hw[NUM_MOTORS] = {
+    { &htim2, TIM_CHANNEL_1, M1P_Pin, M1N_Pin, HALL_1A_Pin, GPIOB, HALL_1B_Pin },
+    { &htim2, TIM_CHANNEL_2, M2P_Pin, M2N_Pin, HALL_2A_Pin, GPIOB, HALL_2B_Pin },
+};
 
+// Pulses-per-mm calibration, one per actuator. MEASURE THESE (see notes near
+// moveAllMM below) - placeholder values will give wrong distances until you do.
+static float pulsesPerMM[NUM_MOTORS] = {10.0f, 10.0f};
 
-uint8_t state = 0;
-
-
-static motor motor1;
-static motor motor2;
-static motor motor3;
-static motor motor4;
-static motor motor5;
-static motor motor6;
-//
-//Motor states and stuff
-
-//
-
+uint32_t full_cycle = 4249;
 
 /* USER CODE END PV */
 
@@ -128,118 +131,189 @@ uint32_t elapsed(timer timer)
     return (uint32_t)(HAL_GetTick() - timer.now);
 }
 
+// Start motor idx moving toward target_ticks pulses of DISTANCE (not net
+// position). duty is the raw CCR compare value for that motor's timer.
+void motor_start(uint8_t idx, uint8_t forward, uint32_t target_ticks, uint32_t duty)
+{
+    MotorHW *hw = &motors_hw[idx];
 
-void go(){
-	if(STP_dir == FORWARD_STANDBY){
-	}
+    __disable_irq();
+    motors[idx].distance_ticks = 0;
+    __enable_irq();
 
-	if(STP_dir == BACKWARD_STANDBY){
-		  GPIOB -> BSRR = p_pins;
-		  GPIOC -> BSRR = (n_pins << 16);
+    motors[idx].target_ticks = target_ticks;
+    motors[idx].active = (target_ticks > 0) ? 1U : 0U;
 
-	}
-	if(STP_dir == SLEEP_STANDBY){
-		  GPIOB -> BSRR = p_pins;
+    if (!motors[idx].active) {
+        return;
+    }
 
-	}
+    if (forward) {
+        HAL_GPIO_WritePin(GPIOC, hw->n_pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOB, hw->p_pin, GPIO_PIN_SET);
+    } else {
+        HAL_GPIO_WritePin(GPIOB, hw->p_pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, hw->n_pin, GPIO_PIN_SET);
+    }
 
-
-	      HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-		  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-		  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-		  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
-
-		  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-		  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-
-		  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-
-		  STP_dir = FORWARD;
-
+    __HAL_TIM_SET_COMPARE(hw->htim, hw->channel, duty);
+    HAL_TIM_PWM_Start(hw->htim, hw->channel);
 }
 
-void back(){
-	if(STP_dir == FORWARD_STANDBY){
-		  GPIOC -> BSRR = n_pins;
-		  GPIOB -> BSRR = (p_pins << 16);
-	}
-	if(STP_dir == SLEEP_STANDBY){
-		  GPIOC -> BSRR = n_pins;
-	}
-
-	if(STP_dir == BACKWARD_STANDBY){
-
-
-	}
-
-	      HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-		  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-		  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-		  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
-
-		  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-		  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-
-		  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-		  STP_dir = BACKWARD;
-
+// Stop motor idx: cuts PWM and releases both direction pins (coast, not brake).
+void motor_stop(uint8_t idx)
+{
+    MotorHW *hw = &motors_hw[idx];
+    HAL_TIM_PWM_Stop(hw->htim, hw->channel);
+    HAL_GPIO_WritePin(GPIOB, hw->p_pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, hw->n_pin, GPIO_PIN_RESET);
+    motors[idx].active = 0U;
 }
 
-void brake(){
-	if(STP_dir == FORWARD){
-		GPIOC -> BSRR = n_pins;
-	}
-	if(STP_dir == BACKWARD){
-		GPIOB -> BSRR = p_pins;
-	}
+void go(void)
+{
+    GPIOB->BSRR = M1P_Pin | M2P_Pin;
+    GPIOC->BSRR = (uint32_t)(M1N_Pin | M2N_Pin) << 16U;
 
-	STP_dir = BRAKE;
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, full_cycle / 2U);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, full_cycle / 2U);
+
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 }
 
-void sleep(){
-	  HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);   // master first
-	  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
-	  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_2);
-	  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_3);
-	  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_4);
+void reverse(void)
+{
+    GPIOB->BSRR = (uint32_t)(M1P_Pin | M2P_Pin) << 16U;
+    GPIOC->BSRR = M1N_Pin | M2N_Pin;
 
-	  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
-	  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_2);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, full_cycle / 2U);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, full_cycle / 2U);
 
-	  if (STP_dir == BACKWARD){
-		  STP_dir = BACKWARD_STANDBY;
-	  }
-
-	  if (STP_dir == FORWARD){
-		  STP_dir = FORWARD_STANDBY;
-	  	  }
-	  if (STP_dir == BRAKE){
-		  GPIOC -> BSRR = (n_pins << 16);
-		  GPIOB -> BSRR = (p_pins << 16);
-		  STP_dir = SLEEP_STANDBY;
-	  }
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 }
 
-void changespeed(uint8_t newspeed){
-	// new speed in percentage
-	if (newspeed>100 || newspeed<0){
-		Error_Handler();
-	}
+// Call every main-loop iteration. Independently stops each motor the instant
+// IT (not the others) reaches its own distance quota.
+void motors_check(void)
+{
+    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+        if (!motors[i].active) continue;
 
-	int new_on =  full_cycle*newspeed/100;
-	TIM2->CCR1 = new_on;
-	TIM2->CCR2 = new_on;
-	TIM2->CCR3 = new_on;
-	TIM2->CCR4 = new_on;
-	TIM3->CCR1 = new_on;
-	TIM3->CCR2 = new_on;
+        uint32_t d;
+        __disable_irq();
+        d = motors[i].distance_ticks;
+        __enable_irq();
 
+        if (d >= motors[i].target_ticks) {
+            motor_stop(i);
+        }
+    }
 }
 
-void go_increment(increment){
-	go();
+// Command all 6 actuators at once. distancesMM[i] > 0 = extend, < 0 = retract.
+// duty is the same raw CCR value applied to every motor (0..full_cycle).
+//
+// CALIBRATION (per actuator, update pulsesPerMM[] above):
+//   1. Fully retract actuator i to a known reference point.
+//   2. moveAllMM() with only actuators[i] non-zero, e.g. 100.0f, others 0.
+//   3. Measure ACTUAL travel with calipers once it stops.
+//   4. Read motors[i].distance_ticks (breakpoint or UART) at the moment it stopped.
+//   5. pulsesPerMM[i] = distance_ticks / actual_mm_measured
+//   Repeat per actuator - small mechanical variance is normal between units.
+void moveAllMM(const float distancesMM[NUM_MOTORS], uint32_t duty)
+{
+    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+        uint8_t forward = (distancesMM[i] >= 0.0f) ? 1U : 0U;
+        uint32_t target = (uint32_t)(fabsf(distancesMM[i]) * pulsesPerMM[i]);
+        motor_start(i, forward, target, duty);
+    }
+
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 }
 
+uint8_t allMotorsDone(void)
+{
+    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+        if (motors[i].active) return 0U;
+    }
+    return 1U;
+}
+
+// One-shot calibration move. Both actuators start forward with the same
+// Hall-tick quota. Each actuator stops independently when it reaches the quota.
+// Measure each actuator's physical travel afterwards, then calculate:
+// pulsesPerMM[i] = CALIBRATION_TICKS / measured_distance_mm
+static void runCalibrationSequence(void)
+{
+    uint32_t started_at = HAL_GetTick();
+    char message[96];
+
+    HAL_UART_Transmit(
+        &huart2,
+        (uint8_t *)"Calibration starting\r\n",
+        sizeof("Calibration starting\r\n") - 1U,
+        HAL_MAX_DELAY
+    );
+
+    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+        motor_start(i, 1U, CALIBRATION_TICKS, CALIBRATION_DUTY);
+    }
+
+    // TIM1 is the internal synchronization master for TIM2 and TIM3.
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+    while (!allMotorsDone()) {
+        motors_check();
+
+        if ((uint32_t)(HAL_GetTick() - started_at) >= CALIBRATION_TIMEOUT_MS) {
+            for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+                if (motors[i].active) {
+                    motor_stop(i);
+                }
+            }
+
+            HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+            HAL_UART_Transmit(
+                &huart2,
+                (uint8_t *)"Calibration timeout - both motors stopped\r\n",
+                sizeof("Calibration timeout - both motors stopped\r\n") - 1U,
+                HAL_MAX_DELAY
+            );
+            return;
+        }
+    }
+
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+
+    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+        int length = snprintf(
+            message,
+            sizeof(message),
+            "M%u: %lu calibration ticks, signed position %ld\r\n",
+            (unsigned int)(i + 1U),
+            (unsigned long)motors[i].distance_ticks,
+            (long)motors[i].ticks
+        );
+
+        HAL_UART_Transmit(
+            &huart2,
+            (uint8_t *)message,
+            (uint16_t)length,
+            HAL_MAX_DELAY
+        );
+    }
+
+    HAL_UART_Transmit(
+        &huart2,
+        (uint8_t *)"Calibration complete - measure each actuator travel\r\n",
+        sizeof("Calibration complete - measure each actuator travel\r\n") - 1U,
+        HAL_MAX_DELAY
+    );
+}
 
 void testCAN()
 {
@@ -336,13 +410,35 @@ int main(void)
   count.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
   count.MessageMarker = 0;
   uint8_t CAN_counter = 0;
-  static char uart_buffer[64];
+  static char uart_buffer[96];
+  uint32_t last_hall_log_ms;
 
+  //if (RUN_CALIBRATION_ON_BOOT) {
+  //    runCalibrationSequence();
+  //}
 
+  last_hall_log_ms = HAL_GetTick();
+
+  // Example: extend both actuators 150mm at ~50% duty. Remove/replace this
+  // with whatever triggers a move in your app (button, CAN command, etc).
+  // float example_targets[NUM_MOTORS] = {150.0f, 150.0f};
+  // moveAllMM(example_targets, full_cycle / 2);
+
+  // Quick motor reset helpers (uses the PWM duty already in the CCR registers):
+  // reverse();
+  // go
+  HAL_UART_Transmit(
+      &huart2,
+      (uint8_t *)"time_ms,M1_total,M2_total,M1_position,M2_position\r\n",
+      sizeof("time_ms,M1_total,M2_total,M1_position,M2_position\r\n") - 1U,
+      HAL_MAX_DELAY
+  );
+  runCalibrationSequence();
   while (1)
   {
 
-
+	  // Independently stops each actuator the moment IT reaches its own quota.
+	  motors_check();
 
 	  //Task 1: LED toggle
 	  	  uint32_t elapsed_time2 = elapsed(timer2);
@@ -352,28 +448,40 @@ int main(void)
 	  	      }
 
 
-	  //Task 2 (Interrupt): Uart Signalling
+	  // Log M1/M2 Hall totals and signed positions as CSV once per second.
+	  uint32_t now_ms = HAL_GetTick();
+	  if ((uint32_t)(now_ms - last_hall_log_ms) >= 1000U) {
+	      uint32_t m1_total;
+	      uint32_t m2_total;
+	      int32_t m1_position;
+	      int32_t m2_position;
 
-	  if (timer1_flag == 1U){
-		  uint32_t elapsed_time = elapsed(timer1);
-	      if (elapsed_time - timer1.sec_marker >= 1000U){
+	      last_hall_log_ms += 1000U;
 
-	    	  timer1.sec_marker += 1000U;
-			  timer1.count++;
-			  int length = snprintf(
-			  					  uart_buffer,
-			  					  sizeof(uart_buffer),
-			  					  "%lu\r\n",
-			  					  (unsigned long)(motor1.ticks)
-			  					  );
+	      __disable_irq();
+	      m1_total = motors[0].total_ticks;
+	      m2_total = motors[1].total_ticks;
+	      m1_position = motors[0].ticks;
+	      m2_position = motors[1].ticks;
+	      __enable_irq();
 
-			  HAL_UART_Transmit(
-					  &huart2,
-					  (uint8_t *)uart_buffer,
-					  length,
-					  HAL_MAX_DELAY
-					  );
-	      }
+	      int length = snprintf(
+	          uart_buffer,
+	          sizeof(uart_buffer),
+	          "%lu,%lu,%lu,%ld,%ld\r\n",
+	          (unsigned long)now_ms,
+	          (unsigned long)m1_total,
+	          (unsigned long)m2_total,
+	          (long)m1_position,
+	          (long)m2_position
+	      );
+
+	      HAL_UART_Transmit(
+	          &huart2,
+	          (uint8_t *)uart_buffer,
+	          (uint16_t)length,
+	          HAL_MAX_DELAY
+	      );
 	  }
 
 	  //Task 3: CAN transmit
@@ -630,7 +738,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 2125;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -870,57 +978,24 @@ void BSP_PB_Callback(Button_TypeDef Button)
     }
 }
 
+// Table lookup keeps M1 and M2 Hall input handling consistent.
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	if(GPIO_Pin == HALL_1A_Pin){
-		motor1.ticks++;}
+    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+        if (GPIO_Pin == motors_hw[i].hall_a_pin) {
+            motors[i].distance_ticks++;
+            motors[i].total_ticks++;
 
-	else if(GPIO_Pin == HALL_2A_Pin){
-		if((HALL_2B_GPIO_Port -> IDR & HALL_2B_Pin) != 0U){ // reading the input of HALL 1B as 1
-			motor2.ticks++;
-		}
-		else{
-			motor2.ticks--;
-		}
-
-	}
-	else if(GPIO_Pin == HALL_3A_Pin){
-		if((HALL_3B_GPIO_Port -> IDR & HALL_3B_Pin) != 0U){ // reading the input of HALL 1B as 1
-			motor3.ticks++;
-		}
-		else{
-			motor3.ticks--;
-		}
-	}
-	else if(GPIO_Pin == HALL_3A_Pin){
-		if((HALL_4B_GPIO_Port -> IDR & HALL_4B_Pin) != 0U){ // reading the input of HALL 1B as 1
-			motor4.ticks++;
-		}
-		else{
-			motor4.ticks--;
-		}
-	}
-	else if(GPIO_Pin == HALL_3A_Pin){
-		if((HALL_5B_GPIO_Port -> IDR & HALL_5B_Pin) != 0U){ // reading the input of HALL 1B as 1
-			motor5.ticks++;
-		}
-		else{
-			motor5.ticks--;
-		}
-	}
-	else if(GPIO_Pin == HALL_3A_Pin){
-		if((HALL_6B_GPIO_Port -> IDR & HALL_6B_Pin) != 0U){ // reading the input of HALL 1B as 1
-			motor6.ticks++;
-		}
-		else{
-			motor6.ticks--;
-		}
-	}
-
-	else
-	{
-      __NOP();
-	}
+            if ((motors_hw[i].hall_b_port->IDR & motors_hw[i].hall_b_pin) != 0U) {
+                motors[i].ticks++;
+            } else {
+                motors[i].ticks--;
+            }
+            return;
+        }
+    }
+    // Not one of the two motor Hall pins (e.g. user button EXTI) - ignore here,
+    // BSP_PB_Callback handles the button separately.
 }
 /* USER CODE END 4 */
 
