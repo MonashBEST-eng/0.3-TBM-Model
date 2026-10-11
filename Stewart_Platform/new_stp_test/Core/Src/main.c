@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <math.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -53,58 +52,68 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
-//TIMERS
+/* ===========================================================================
+ * DRIVER: 2-channel high-power H-bridge module, per the datasheet supplied.
+ * Truth table (A, B are the MxP / MxN pins; PA is the MxS PWM pin):
+ *
+ *      A B   -> state
+ *      0 0   -> brake  (defined)
+ *      1 0   -> forward (defined)
+ *      0 1   -> reverse (defined)
+ *      1 1   -> UNDEFINED by the datasheet -- never generate this.
+ *
+ * This board has no documented freewheel/coast state: with A=B=0 you are
+ * always in "brake" regardless of PWM duty. For a self-locking leadscrew
+ * actuator that is the correct idle state anyway (it holds position with
+ * zero drive current), so M_COAST and M_BRAKE below map to the same pins.
+ * =========================================================================*/
+
+/* Dead time between changing A/B. The BTS7960-class driver ICs typically
+ * have their own cross-conduction protection, but a gap costs nothing and
+ * protects you if this turns out to be a simpler discrete-FET board. */
+#ifndef BRIDGE_DEADTIME_ITERS
+#define BRIDGE_DEADTIME_ITERS   16u
+#endif
+
+#define MOTOR_COUNT             2      /* two actuators in use */
+#define PWM_FULL_CYCLE          4249UL /* must match htimX.Init.Period */
+
+
+/* ---------------------------------------------------------------- timers */
 typedef struct {
     uint32_t now;
     uint32_t sec_marker;
     uint32_t count;
 } timer;
 
-volatile timer timer1;
-volatile timer timer2;
-volatile timer timer3_CAN_UDS;
-volatile uint8_t timer1_flag = 0U;
+static volatile timer timer1;
+static volatile timer timer2;
+static volatile timer timer3_CAN_UDS;
+static volatile uint8_t timer1_flag = 0U;
 
-//Motor states and stuff
-#define NUM_MOTORS 2
-#define RUN_CALIBRATION_ON_BOOT 1U
-#define CALIBRATION_TICKS       500U
-#define CALIBRATION_DUTY        (full_cycle / 4U)
-#define CALIBRATION_TIMEOUT_MS  15000U
+/* ---------------------------------------------------------------- motors */
+typedef enum {
+    M_COAST = 0,   /* electrically identical to M_BRAKE on this driver */
+    M_FORWARD,
+    M_BACKWARD,
+    M_BRAKE
+} drive_state;
 
 typedef struct {
-    volatile int32_t ticks;            // net position, signed: +forward, -backward
-    volatile uint32_t distance_ticks;  // ALWAYS increments regardless of direction.
-                                        // This is what a distance "quota" checks against.
-    volatile uint32_t total_ticks;     // lifetime Hall edges since this boot
-    uint32_t target_ticks;             // quota target for the current move, in pulses
-    volatile uint8_t active;           // 1 while this motor is still moving toward target
+    GPIO_TypeDef      *a_port;     /* MxP pin -> driver's "A" input */
+    uint16_t           a_pin;
+    GPIO_TypeDef      *b_port;     /* MxN pin -> driver's "B" input */
+    uint16_t           b_pin;
+    TIM_HandleTypeDef *htim;       /* PWM timer driving the MxS ("PA") pin */
+    uint32_t           channel;
+    GPIO_TypeDef      *hall_b_port;
+    uint16_t           hall_b_pin;
+    volatile int32_t   ticks;      /* signed: reverse rotation goes negative */
+    uint8_t            speed_pct;
+    drive_state        state;
 } motor;
 
-static motor motors[NUM_MOTORS];
-
-// Per-motor hardware mapping: which timer/channel drives it, which GPIO pins
-// set its direction, and which Hall pins belong to it.
-typedef struct {
-    TIM_HandleTypeDef *htim;
-    uint32_t channel;
-    uint16_t p_pin;          // forward-direction pin, on GPIOB
-    uint16_t n_pin;          // backward-direction pin, on GPIOC
-    uint16_t hall_a_pin;     // interrupt pin, on GPIOC
-    GPIO_TypeDef *hall_b_port;
-    uint16_t hall_b_pin;     // direction-sense pin, read (not interrupt)
-} MotorHW;
-
-static MotorHW motors_hw[NUM_MOTORS] = {
-    { &htim2, TIM_CHANNEL_1, M1P_Pin, M1N_Pin, HALL_1A_Pin, GPIOB, HALL_1B_Pin },
-    { &htim2, TIM_CHANNEL_2, M2P_Pin, M2N_Pin, HALL_2A_Pin, GPIOB, HALL_2B_Pin },
-};
-
-// Pulses-per-mm calibration, one per actuator. MEASURE THESE (see notes near
-// moveAllMM below) - placeholder values will give wrong distances until you do.
-static float pulsesPerMM[NUM_MOTORS] = {10.0f, 10.0f};
-
-uint32_t full_cycle = 4249;
+static motor motors[MOTOR_COUNT];
 
 /* USER CODE END PV */
 
@@ -117,214 +126,674 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-timer start_timer()
+
+/* ---------------------------------------------------------------- timers */
+/* Take a pointer so a volatile timer can be started in place, and so the
+ * struct is never copied word-by-word out from under an interrupt. */
+static void start_timer(volatile timer *t)
 {
-	timer timer;
-    timer.now = HAL_GetTick();
-    timer.sec_marker = 0U;
-    timer.count = 0;
-    return timer;
+    t->now        = HAL_GetTick();
+    t->sec_marker = 0U;
+    t->count      = 0U;
 }
 
-uint32_t elapsed(timer timer)
+static uint32_t elapsed(const volatile timer *t)
 {
-    return (uint32_t)(HAL_GetTick() - timer.now);
+    /* Unsigned subtraction: correct across the 2^32 ms tick rollover. */
+    return (uint32_t)(HAL_GetTick() - t->now);
 }
 
-// Start motor idx moving toward target_ticks pulses of DISTANCE (not net
-// position). duty is the raw CCR compare value for that motor's timer.
-void motor_start(uint8_t idx, uint8_t forward, uint32_t target_ticks, uint32_t duty)
+
+/* ------------------------------------------------------- motor table init */
+/* Two actuators, driven through M1P/M1N (A/B) + M1S (PWM) and
+ * M2P/M2N (A/B) + M2S (PWM). M1S=PA0, M2S=PA1 map to TIM2 CH1/CH2. */
+static void Motors_Init(void)
 {
-    MotorHW *hw = &motors_hw[idx];
+    static const struct {
+        GPIO_TypeDef *a_port; uint16_t a_pin;
+        GPIO_TypeDef *b_port; uint16_t b_pin;
+        uint32_t      channel;
+        GPIO_TypeDef *hb_port; uint16_t hb_pin;
+    } map[MOTOR_COUNT] = {
+        { M1P_GPIO_Port, M1P_Pin, M1N_GPIO_Port, M1N_Pin, TIM_CHANNEL_1, HALL_1B_GPIO_Port, HALL_1B_Pin },
+        { M2P_GPIO_Port, M2P_Pin, M2N_GPIO_Port, M2N_Pin, TIM_CHANNEL_2, HALL_2B_GPIO_Port, HALL_2B_Pin },
+    };
 
-    __disable_irq();
-    motors[idx].distance_ticks = 0;
-    __enable_irq();
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        motors[i].a_port      = map[i].a_port;
+        motors[i].a_pin       = map[i].a_pin;
+        motors[i].b_port      = map[i].b_port;
+        motors[i].b_pin       = map[i].b_pin;
+        motors[i].htim        = &htim2;
+        motors[i].channel     = map[i].channel;
+        motors[i].hall_b_port = map[i].hb_port;
+        motors[i].hall_b_pin  = map[i].hb_pin;
+        motors[i].ticks       = 0;
+        motors[i].speed_pct   = 0U;
+        motors[i].state       = M_COAST;
+    }
+}
 
-    motors[idx].target_ticks = target_ticks;
-    motors[idx].active = (target_ticks > 0) ? 1U : 0U;
+/* ------------------------------------------------------------- bridge I/O */
+static inline void bridge_deadtime(void)
+{
+    for (volatile uint32_t i = 0U; i < BRIDGE_DEADTIME_ITERS; i++)
+    {
+        __NOP();
+    }
+}
 
-    if (!motors[idx].active) {
-        return;
+/* A/B truth table per the datasheet: 00 brake, 10 forward, 01 reverse,
+ * 11 never generated. Both pins are always dropped first so a transition
+ * can never pass through the forbidden 1,1 state, even transiently. */
+static void Motor_SetDirection(int idx, drive_state s)
+{
+    if (idx < 0 || idx >= MOTOR_COUNT) { return; }
+    motor *m = &motors[idx];
+    if (m->state == s) { return; }
+
+    /* 1. A=0, B=0 (brake state, and the only safe transit point). */
+    m->a_port->BSRR = (uint32_t)m->a_pin << 16;
+    m->b_port->BSRR = (uint32_t)m->b_pin << 16;
+
+    bridge_deadtime();
+
+    /* 2. Raise the one pin this state needs -- never both. */
+    switch (s)
+    {
+    case M_FORWARD:
+        m->a_port->BSRR = m->a_pin;      /* A=1, B=0 */
+        break;
+    case M_BACKWARD:
+        m->b_port->BSRR = m->b_pin;      /* A=0, B=1 */
+        break;
+    case M_BRAKE:
+    case M_COAST:                        /* no freewheel state on this driver */
+    default:
+        break;                           /* A=0, B=0 already set above */
     }
 
-    if (forward) {
-        HAL_GPIO_WritePin(GPIOC, hw->n_pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOB, hw->p_pin, GPIO_PIN_SET);
-    } else {
-        HAL_GPIO_WritePin(GPIOB, hw->p_pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, hw->n_pin, GPIO_PIN_SET);
-    }
-
-    __HAL_TIM_SET_COMPARE(hw->htim, hw->channel, duty);
-    HAL_TIM_PWM_Start(hw->htim, hw->channel);
+    m->state = s;
 }
 
-// Stop motor idx: cuts PWM and releases both direction pins (coast, not brake).
-void motor_stop(uint8_t idx)
+/* -------------------------------------------------------------- PWM duty */
+/* Duty is per motor. Writing CCR directly is a mid-cycle write: enable OC
+ * preload (TIM_OCFAST / CCxPE) in MX_TIM2_Init if you see glitches under load. */
+static void Motor_SetSpeed(int idx, uint8_t pct)
 {
-    MotorHW *hw = &motors_hw[idx];
-    HAL_TIM_PWM_Stop(hw->htim, hw->channel);
-    HAL_GPIO_WritePin(GPIOB, hw->p_pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOC, hw->n_pin, GPIO_PIN_RESET);
-    motors[idx].active = 0U;
+    if (idx < 0 || idx >= MOTOR_COUNT) { return; }
+    if (pct > 98U) { pct = 98U; }   /* clamp; never trap on a bad argument */
+
+    motors[idx].speed_pct = pct;
+    __HAL_TIM_SET_COMPARE(motors[idx].htim,
+                          motors[idx].channel,
+                          (uint32_t)((PWM_FULL_CYCLE * pct) / 100UL));
 }
 
-void go(void)
+static void Motors_SetSpeedAll(uint8_t pct)
 {
-    GPIOB->BSRR = M1P_Pin | M2P_Pin;
-    GPIOC->BSRR = (uint32_t)(M1N_Pin | M2N_Pin) << 16U;
+    for (int i = 0; i < MOTOR_COUNT; i++) { Motor_SetSpeed(i, pct); }
+}
 
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, full_cycle / 2U);
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, full_cycle / 2U);
-
+/* --------------------------------------------------------- PWM run/stop */
+/* Only TIM2 CH1/CH2 are in use now (M1S, M2S). TIM1 and TIM3 stay stopped;
+ * leave MX_TIM1_Init/MX_TIM3_Init in place since removing them means also
+ * re-deriving TIM2's slave clock (it syncs off TIM1 via ITR0). */
+static void Motors_StartPWM(void)
+{
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);   /* master, drives TIM2's sync */
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 }
 
-void reverse(void)
+static void Motors_StopPWM(void)
 {
-    GPIOB->BSRR = (uint32_t)(M1P_Pin | M2P_Pin) << 16U;
-    GPIOC->BSRR = M1N_Pin | M2N_Pin;
-
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, full_cycle / 2U);
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, full_cycle / 2U);
-
-    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-}
-
-// Call every main-loop iteration. Independently stops each motor the instant
-// IT (not the others) reaches its own distance quota.
-void motors_check(void)
-{
-    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-        if (!motors[i].active) continue;
-
-        uint32_t d;
-        __disable_irq();
-        d = motors[i].distance_ticks;
-        __enable_irq();
-
-        if (d >= motors[i].target_ticks) {
-            motor_stop(i);
-        }
-    }
-}
-
-// Command all 6 actuators at once. distancesMM[i] > 0 = extend, < 0 = retract.
-// duty is the same raw CCR value applied to every motor (0..full_cycle).
-//
-// CALIBRATION (per actuator, update pulsesPerMM[] above):
-//   1. Fully retract actuator i to a known reference point.
-//   2. moveAllMM() with only actuators[i] non-zero, e.g. 100.0f, others 0.
-//   3. Measure ACTUAL travel with calipers once it stops.
-//   4. Read motors[i].distance_ticks (breakpoint or UART) at the moment it stopped.
-//   5. pulsesPerMM[i] = distance_ticks / actual_mm_measured
-//   Repeat per actuator - small mechanical variance is normal between units.
-void moveAllMM(const float distancesMM[NUM_MOTORS], uint32_t duty)
-{
-    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-        uint8_t forward = (distancesMM[i] >= 0.0f) ? 1U : 0U;
-        uint32_t target = (uint32_t)(fabsf(distancesMM[i]) * pulsesPerMM[i]);
-        motor_start(i, forward, target, duty);
-    }
-
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-}
-
-uint8_t allMotorsDone(void)
-{
-    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-        if (motors[i].active) return 0U;
-    }
-    return 1U;
-}
-
-// One-shot calibration move. Both actuators start forward with the same
-// Hall-tick quota. Each actuator stops independently when it reaches the quota.
-// Measure each actuator's physical travel afterwards, then calculate:
-// pulsesPerMM[i] = CALIBRATION_TICKS / measured_distance_mm
-static void runCalibrationSequence(void)
-{
-    uint32_t started_at = HAL_GetTick();
-    char message[96];
-
-    HAL_UART_Transmit(
-        &huart2,
-        (uint8_t *)"Calibration starting\r\n",
-        sizeof("Calibration starting\r\n") - 1U,
-        HAL_MAX_DELAY
-    );
-
-    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-        motor_start(i, 1U, CALIBRATION_TICKS, CALIBRATION_DUTY);
-    }
-
-    // TIM1 is the internal synchronization master for TIM2 and TIM3.
-    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-
-    while (!allMotorsDone()) {
-        motors_check();
-
-        if ((uint32_t)(HAL_GetTick() - started_at) >= CALIBRATION_TIMEOUT_MS) {
-            for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-                if (motors[i].active) {
-                    motor_stop(i);
-                }
-            }
-
-            HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-            HAL_UART_Transmit(
-                &huart2,
-                (uint8_t *)"Calibration timeout - both motors stopped\r\n",
-                sizeof("Calibration timeout - both motors stopped\r\n") - 1U,
-                HAL_MAX_DELAY
-            );
-            return;
-        }
-    }
-
+    HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_2);
     HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
-
-    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-        int length = snprintf(
-            message,
-            sizeof(message),
-            "M%u: %lu calibration ticks, signed position %ld\r\n",
-            (unsigned int)(i + 1U),
-            (unsigned long)motors[i].distance_ticks,
-            (long)motors[i].ticks
-        );
-
-        HAL_UART_Transmit(
-            &huart2,
-            (uint8_t *)message,
-            (uint16_t)length,
-            HAL_MAX_DELAY
-        );
-    }
-
-    HAL_UART_Transmit(
-        &huart2,
-        (uint8_t *)"Calibration complete - measure each actuator travel\r\n",
-        sizeof("Calibration complete - measure each actuator travel\r\n") - 1U,
-        HAL_MAX_DELAY
-    );
 }
 
-void testCAN()
+/* ------------------------------------------------- all-motor convenience */
+static void Motors_SetDirectionAll(drive_state s)
 {
+    for (int i = 0; i < MOTOR_COUNT; i++) { Motor_SetDirection(i, s); }
+}
 
+/* Runtime watchdog: cuts drive if a motor has been actively running longer
+ * than this. Set it a comfortable margin above your actuator's full-stroke
+ * travel time (e.g. stroke_mm / rated_speed_mm_per_s * 1000, plus ~30%).
+ * Internal limit switches stop a normal, unobstructed stroke; this catches
+ * the case where something jams mid-travel and the motor would otherwise
+ * just sit there at stall current. TUNE THIS for your actuator before use. */
+#ifndef ACTUATOR_MAX_RUN_MS
+#define ACTUATOR_MAX_RUN_MS   5000UL   /* PLACEHOLDER -- replace with your
+                                         * actuator's measured full-stroke
+                                         * time + ~30% margin before real use */
+#endif
+
+static uint32_t motor_run_started[MOTOR_COUNT];   /* HAL_GetTick() at drive start, 0 = not running */
+
+/* Extend/retract with an explicit speed, so a direction call can never
+ * leave a motor sitting at 0% duty. This replaces the old parameterless
+ * go()/back(), which set direction but never touched duty cycle -- calling
+ * either alone did not move the actuator. */
+void go(uint8_t speed_pct)
+{
+    Motors_SetSpeedAll(speed_pct);
+    Motors_SetDirectionAll(M_FORWARD);
+    Motors_StartPWM();
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = now; }
+}
+
+void back(uint8_t speed_pct)
+{
+    Motors_SetSpeedAll(speed_pct);
+    Motors_SetDirectionAll(M_BACKWARD);
+    Motors_StartPWM();
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = now; }
+}
+
+void brake(void)
+{
+    /* Cut drive before shorting the winding, or the brake fights the PWM. */
+    Motors_SetSpeedAll(0U);
+    Motors_StopPWM();
+    Motors_SetDirectionAll(M_BRAKE);
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = 0U; }
+}
+
+void sleep(void)
+{
+    Motors_SetSpeedAll(0U);
+    Motors_StopPWM();
+    Motors_SetDirectionAll(M_COAST);
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = 0U; }
+}
+
+void changespeed(uint8_t newspeed)
+{
+    Motors_SetSpeedAll(newspeed);
+}
+
+/* Replaces the brake_single_motor() stub. Index is 0-based: 0 == motor 1. */
+void brake_single_motor(int idx)
+{
+    if (idx < 0 || idx >= MOTOR_COUNT) { return; }
+    Motor_SetSpeed(idx, 0U);
+    Motor_SetDirection(idx, M_BRAKE);
+    motor_run_started[idx] = 0U;
+}
+
+/* Replaces go_increment(). Nudges every motor's duty by a signed delta;
+ * only meaningful once a direction is already set via go()/back(). */
+void go_increment(int8_t increment)
+{
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        int next = (int)motors[i].speed_pct + increment;
+        if (next < 0)   { next = 0; }
+        if (next > 100) { next = 100; }
+        Motor_SetSpeed(i, (uint8_t)next);
+    }
+}
+
+/* Call once per main-loop iteration. Brakes any motor that has been
+ * actively driving longer than ACTUATOR_MAX_RUN_MS -- the catch for a
+ * jam or obstruction that the actuator's own end-of-stroke switches
+ * won't see. */
+void Motors_ServiceWatchdog(void)
+{
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        if (motor_run_started[i] != 0U &&
+            (uint32_t)(now - motor_run_started[i]) >= ACTUATOR_MAX_RUN_MS)
+        {
+            brake_single_motor(i);
+        }
+    }
+}
+
+/* ===========================================================================
+ * TEMPORARY BENCH TEST -- drives go()/back()/brake()/sleep() in a fixed
+ * sequence so you can watch behavior without a debugger or a UART command
+ * parser. Runs as its own non-blocking task alongside everything else in
+ * the main loop, rather than blocking with HAL_Delay.
+ *
+ * FIRST TIME WITH A REAL ACTUATOR CONNECTED: these defaults are deliberately
+ * conservative (low speed, short phase). Confirm direction and behavior at
+ * this setting before raising BENCH_TEST_SPEED_PCT or BENCH_TEST_PHASE_MS.
+ * Set ACTUATOR_MAX_RUN_MS to your actual stroke time before this test, not
+ * the placeholder value above.
+ *
+ * DELETE THIS WHOLE BLOCK, and the BenchTest_Service() call in main(),
+ * once you're done testing -- this is not meant to survive into whatever
+ * actually triggers movement in the finished device.
+ * =========================================================================*/
+#define BENCH_TEST_ENABLED     0     /* set to 0 (or delete the block) when done */
+#define BENCH_TEST_SPEED_PCT   15U   /* start low; raise once direction is confirmed */
+#define BENCH_TEST_PHASE_MS    1000UL /* how long FORWARD/BACKWARD run before braking */
+
+#if BENCH_TEST_ENABLED
+typedef enum { BT_COAST, BT_FORWARD, BT_BRAKE1, BT_BACKWARD, BT_BRAKE2 } bench_test_state;
+
+static bench_test_state  bench_state   = BT_COAST;
+static volatile timer    bench_timer;
+static uint8_t           bench_started = 0U;
+
+static void BenchTest_Print(const char *s, size_t len)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)s, (uint16_t)len, HAL_MAX_DELAY);
+}
+#define BENCH_PRINT(lit) BenchTest_Print((lit), sizeof(lit) - 1U)
+
+static void BenchTest_Service(void)
+{
+    if (!bench_started) { start_timer(&bench_timer); bench_started = 1U; }
+
+    /* COAST/BRAKE phases pause for BENCH_TEST_PHASE_MS too, so you have
+     * time to visually confirm the actuator actually stopped before it
+     * moves again. */
+    if (elapsed(&bench_timer) < BENCH_TEST_PHASE_MS) { return; }
+    start_timer(&bench_timer);
+
+    switch (bench_state)
+    {
+    case BT_COAST:
+        BENCH_PRINT("BENCH: COAST\r\n");
+        sleep();
+        bench_state = BT_FORWARD;
+        break;
+    case BT_FORWARD:
+        BENCH_PRINT("BENCH: FORWARD\r\n");
+        go(BENCH_TEST_SPEED_PCT);     /* expect: M1P/M2P high, M1N/M2N low */
+        bench_state = BT_BRAKE1;
+        break;
+    case BT_BRAKE1:
+        BENCH_PRINT("BENCH: BRAKE\r\n");
+        brake();                      /* expect: all four pins low */
+        bench_state = BT_BACKWARD;
+        break;
+    case BT_BACKWARD:
+        BENCH_PRINT("BENCH: BACKWARD\r\n");
+        back(BENCH_TEST_SPEED_PCT);   /* expect: M1N/M2N high, M1P/M2P low */
+        bench_state = BT_BRAKE2;
+        break;
+    case BT_BRAKE2:
+        BENCH_PRINT("BENCH: BRAKE\r\n");
+        brake();
+        bench_state = BT_COAST;
+        break;
+    }
+}
+#endif /* BENCH_TEST_ENABLED */
+
+/* --------------------------------------------------------------- encoder */
+static int32_t Motor_GetTicks(int idx)
+{
+    int32_t v;
+    if (idx < 0 || idx >= MOTOR_COUNT) { return 0; }
+    /* ticks is written from an EXTI ISR; read it with interrupts masked so
+     * a 32-bit read can't be torn by an update mid-read. */
+    __disable_irq();
+    v = motors[idx].ticks;
+    __enable_irq();
+    return v;
 }
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/* ===========================================================================
+ * TEST REGIME for the 2-actuator H-bridge + Hall encoder firmware.
+ *
+ * WHERE THIS GOES
+ *   Paste this whole block into main.c inside "USER CODE BEGIN 0"
+ *   (after the PFP block, so motors[], Motor_SetDirection(), Motor_SetSpeed(),
+ *   Motor_GetTicks(), go(), back(), brake(), sleep() and Motors_ServiceWatchdog()
+ *   are already defined).
+ *
+ * HOW IT RUNS
+ *   In "USER CODE BEGIN 2", after Motors_Init()/SetDirectionAll/SetSpeedAll
+ *   and BEFORE BSP_COM_Init is NOT acceptable -- call it after the COM port
+ *   is initialised. Easiest spot: first line inside "USER CODE BEGIN WHILE":
+ *
+ *       #if RUN_TESTS
+ *         Test_RunAll();
+ *       #endif
+ *
+ *   ALSO delete the stray  go(50);  at the top of while(1).
+ *
+ * SAFETY
+ *   Tests 1-4 never move the actuators (PWM stopped, duty 0).
+ *   Tests 5-6 DO drive both actuators at TEST_SPEED_PCT. Make sure they are
+ *   clear to move and not sitting hard against an end stop in the direction
+ *   being tested. Test 7 (watchdog) drives for ACTUATOR_MAX_RUN_MS and is
+ *   off by default.
+ * =========================================================================*/
+#include <stdarg.h>
+#include <stdlib.h>
 
+#define RUN_TESTS               1
+#define TEST_SPEED_PCT          15U      /* keep low on first run            */
+#define TEST_RUN_MS             1000UL   /* drive time per direction         */
+#define TEST_RUN_WATCHDOG       0        /* 1 = also run the 5 s watchdog test */
+
+/* huart2 was removed from the .ioc, so log through the Nucleo BSP COM port.
+ * Confirm hcom_uart[] exists in your stm32g4xx_nucleo.c; if not, point
+ * TEST_UART at whichever UART_HandleTypeDef you actually have. */
+extern UART_HandleTypeDef hcom_uart[];
+#define TEST_UART               (&hcom_uart[COM1])
+
+#if RUN_TESTS
+
+static uint32_t t_pass = 0U, t_fail = 0U;
+
+
+
+static void T_Print(const char *fmt, ...)
+{
+    char buf[128];
+    va_list ap;
+    va_start(ap, fmt);
+    int n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    if (n > 0)
+    {
+        if (n > (int)sizeof(buf) - 1) { n = (int)sizeof(buf) - 1; }
+        HAL_UART_Transmit(TEST_UART, (uint8_t *)buf, (uint16_t)n, HAL_MAX_DELAY);
+    }
+}
+
+static void T_Check(const char *name, int cond)
+{
+    if (cond) { t_pass++; T_Print("  PASS  %s\r\n", name); }
+    else      { t_fail++; T_Print("  FAIL  %s\r\n", name); }
+}
+
+/* Wait ms while still servicing the runtime watchdog. */
+static void T_Delay(uint32_t ms)
+{
+    uint32_t t0 = HAL_GetTick();
+    while ((uint32_t)(HAL_GetTick() - t0) < ms)
+    {
+        Motors_ServiceWatchdog();
+    }
+}
+
+static int T_Out(GPIO_TypeDef *p, uint16_t pin)
+{
+    return (p->ODR & pin) != 0U;
+}
+
+static void T_ZeroTicks(void)
+{
+    __disable_irq();
+    for (int i = 0; i < MOTOR_COUNT; i++) { motors[i].ticks = 0; }
+    __enable_irq();
+}
+
+/* ---------------------------------------------------------------- TEST 1 */
+/* Power-on state: everything low, duty zero, state coast. */
+static void T_Idle(void)
+{
+    T_Print("[1] Idle state\r\n");
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Check("A low",  !T_Out(motors[i].a_port, motors[i].a_pin));
+        T_Check("B low",  !T_Out(motors[i].b_port, motors[i].b_pin));
+        T_Check("duty 0", __HAL_TIM_GET_COMPARE(motors[i].htim, motors[i].channel) == 0U);
+        T_Check("state coast", motors[i].state == M_COAST);
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 2 */
+/* H-bridge truth table, checked on the output data register.
+ * 00 brake, 10 forward, 01 reverse, 11 must NEVER appear. */
+static void T_Direction(void)
+{
+    static const struct { drive_state s; int a; int b; const char *n; } seq[] = {
+        { M_FORWARD,  1, 0, "forward  -> A=1 B=0" },
+        { M_BACKWARD, 0, 1, "backward -> A=0 B=1" },
+        { M_BRAKE,    0, 0, "brake    -> A=0 B=0" },
+        { M_FORWARD,  1, 0, "forward again" },
+        { M_COAST,    0, 0, "coast    -> A=0 B=0" },
+    };
+
+    T_Print("[2] Direction truth table (no PWM, no motion)\r\n");
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        for (unsigned k = 0; k < sizeof(seq) / sizeof(seq[0]); k++)
+        {
+            Motor_SetDirection(i, seq[k].s);
+            int a = T_Out(motors[i].a_port, motors[i].a_pin);
+            int b = T_Out(motors[i].b_port, motors[i].b_pin);
+            T_Check(seq[k].n, a == seq[k].a && b == seq[k].b);
+            T_Check("never 1,1", !(a && b));
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 3 */
+/* Duty cycle maths and clamp. CCR = 4249*pct/100, pct clamped to 98. */
+static void T_Duty(void)
+{
+    static const struct { uint8_t pct; uint32_t ccr; const char *n; } d[] = {
+        {   0,    0, "0%  -> CCR 0"    },
+        {  50, 2124, "50% -> CCR 2124" },
+        {  98, 4164, "98% -> CCR 4164" },
+        { 100, 4164, "100% clamps to 98%" },
+        { 255, 4164, "255 clamps to 98%"  },
+    };
+
+    T_Print("[3] PWM duty registers\r\n");
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        for (unsigned k = 0; k < sizeof(d) / sizeof(d[0]); k++)
+        {
+            Motor_SetSpeed(i, d[k].pct);
+            T_Check(d[k].n,
+                    __HAL_TIM_GET_COMPARE(motors[i].htim, motors[i].channel) == d[k].ccr);
+        }
+        Motor_SetSpeed(i, 0U);
+    }
+    Motor_SetDirection(0, M_COAST);
+    Motor_SetDirection(1, M_COAST);
+}
+
+/* ---------------------------------------------------------------- TEST 4 */
+/* With nothing driven, the encoder must be quiet. Counts here mean a
+ * floating/noisy Hall line, a bad pull-up, or EMI from the driver. */
+static void T_EncoderQuiet(void)
+{
+    T_Print("[4] Encoder quiet while idle (2 s)\r\n");
+    T_ZeroTicks();
+    T_Delay(2000UL);
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        int32_t t = Motor_GetTicks(i);
+        T_Print("      motor %d ticks = %ld\r\n", i + 1, (long)t);
+        T_Check("no spurious ticks", t == 0);
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 5 */
+/* Drive forward then backward. Ticks must move, and with opposite signs.
+ * If both signs are inverted, swap ++/-- in HAL_GPIO_EXTI_Callback.
+ * If ticks are 0, check (a) end stop, (b) the EXTI callback name, (c) the
+ * B pin assignment. */
+static void T_RunDirections(void)
+{
+    int32_t fwd[MOTOR_COUNT], bwd[MOTOR_COUNT];
+
+    T_Print("[5] Drive forward/back at %u%% for %lu ms each\r\n",
+            (unsigned)TEST_SPEED_PCT, (unsigned long)TEST_RUN_MS);
+
+    T_ZeroTicks();
+    go(TEST_SPEED_PCT);
+    T_Delay(TEST_RUN_MS);
+    brake();
+    T_Delay(300UL);                       /* let it settle */
+    for (int i = 0; i < MOTOR_COUNT; i++) { fwd[i] = Motor_GetTicks(i); }
+
+    T_ZeroTicks();
+    back(TEST_SPEED_PCT);
+    T_Delay(TEST_RUN_MS);
+    brake();
+    T_Delay(300UL);
+    for (int i = 0; i < MOTOR_COUNT; i++) { bwd[i] = Motor_GetTicks(i); }
+
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Print("      motor %d: forward %ld, backward %ld\r\n",
+                i + 1, (long)fwd[i], (long)bwd[i]);
+        T_Check("forward counts",  fwd[i] != 0);
+        T_Check("backward counts", bwd[i] != 0);
+        T_Check("forward > 0",     fwd[i] > 0);
+        T_Check("backward < 0",    bwd[i] < 0);
+        T_Check("fwd/back roughly equal magnitude",
+                abs(abs(fwd[i]) - abs(bwd[i])) <= (abs(fwd[i]) / 5 + 2));
+    }
+
+    /* After brake(): outputs low, duty zero. */
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Check("braked: A low", !T_Out(motors[i].a_port, motors[i].a_pin));
+        T_Check("braked: B low", !T_Out(motors[i].b_port, motors[i].b_pin));
+        T_Check("braked: duty 0",
+                __HAL_TIM_GET_COMPARE(motors[i].htim, motors[i].channel) == 0U);
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 6 */
+/* Speed vs tick rate, and round-trip repeatability. Forward at each speed,
+ * then back at the same speed for the same time; net should be near zero. */
+static void T_SpeedSweep(void)
+{
+    static const uint8_t speeds[] = { 10U, 20U, 30U };
+    int32_t prev[MOTOR_COUNT] = { 0 };
+
+    T_Print("[6] Speed sweep (400 ms each way)\r\n");
+    for (unsigned k = 0; k < sizeof(speeds); k++)
+    {
+        int32_t f[MOTOR_COUNT];
+
+        T_ZeroTicks();
+        go(speeds[k]);
+        T_Delay(400UL);
+        brake();
+        T_Delay(300UL);
+        for (int i = 0; i < MOTOR_COUNT; i++) { f[i] = Motor_GetTicks(i); }
+
+        back(speeds[k]);
+        T_Delay(400UL);
+        brake();
+        T_Delay(300UL);
+
+        for (int i = 0; i < MOTOR_COUNT; i++)
+        {
+            int32_t net = Motor_GetTicks(i);
+            T_Print("      %u%%  motor %d: out %ld, net after return %ld\r\n",
+                    (unsigned)speeds[k], i + 1, (long)f[i], (long)net);
+            T_Check("faster -> more ticks", f[i] >= prev[i]);
+            T_Check("round trip returns near start", abs(net) <= (abs(f[i]) / 10 + 2));
+            prev[i] = f[i];
+        }
+    }
+}
+/* Does B ever change while driving? */
+static void T_DiagB(void)
+{
+    T_Print("[D1] B-line level while driving\r\n");
+    go(TEST_SPEED_PCT);
+    uint32_t hi[MOTOR_COUNT] = {0};
+    for (int n = 0; n < 1000; n++) {
+        for (int i = 0; i < MOTOR_COUNT; i++)
+            if (motors[i].hall_b_port->IDR & motors[i].hall_b_pin) hi[i]++;
+        HAL_Delay(1);
+    }
+    brake();
+    for (int i = 0; i < MOTOR_COUNT; i++)
+        T_Print("      motor %d: B high %lu/1000\r\n", i + 1, (unsigned long)hi[i]);
+}
+
+/* PWM running but bridge braked: any ticks are pure coupling noise. */
+static void T_DiagPwmNoise(void)
+{
+    T_Print("[D2] PWM on, bridge braked, 1 s\r\n");
+    Motors_SetSpeedAll(TEST_SPEED_PCT);
+    Motors_SetDirectionAll(M_BRAKE);
+    Motors_StartPWM();
+    T_ZeroTicks();
+    T_Delay(1000UL);
+    Motors_StopPWM();
+    Motors_SetSpeedAll(0U);
+    for (int i = 0; i < MOTOR_COUNT; i++)
+        T_Print("      motor %d ticks = %ld\r\n", i + 1, (long)Motor_GetTicks(i));
+}
+
+/* ---------------------------------------------------------------- TEST 7 */
+#if TEST_RUN_WATCHDOG
+/* Drives until the watchdog must fire. Confirms it trips at
+ * ACTUATOR_MAX_RUN_MS and leaves the bridge in brake. Needs room to travel
+ * (or an obstruction) for that long -- an actuator at its end stop will stall
+ * at current for the full duration. */
+static void T_Watchdog(void)
+{
+    T_Print("[7] Watchdog (%lu ms limit)\r\n", (unsigned long)ACTUATOR_MAX_RUN_MS);
+    uint32_t t0 = HAL_GetTick();
+    uint32_t tripped_at = 0U;
+
+    go(TEST_SPEED_PCT);
+    while ((uint32_t)(HAL_GetTick() - t0) < ACTUATOR_MAX_RUN_MS + 1000UL)
+    {
+        Motors_ServiceWatchdog();
+        if (tripped_at == 0U && motors[0].state == M_BRAKE && motors[1].state == M_BRAKE)
+        {
+            tripped_at = (uint32_t)(HAL_GetTick() - t0);
+        }
+    }
+    T_Print("      tripped after %lu ms\r\n", (unsigned long)tripped_at);
+    T_Check("watchdog tripped", tripped_at != 0U);
+    T_Check("tripped at limit (not early/late)",
+            tripped_at >= ACTUATOR_MAX_RUN_MS && tripped_at <= ACTUATOR_MAX_RUN_MS + 50UL);
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Check("A low after trip", !T_Out(motors[i].a_port, motors[i].a_pin));
+        T_Check("B low after trip", !T_Out(motors[i].b_port, motors[i].b_pin));
+    }
+    brake();
+}
+#endif
+
+/* ----------------------------------------------------------------- runner */
+void Test_RunAll(void)
+{
+    t_pass = t_fail = 0U;
+    T_Print("\r\n===== TEST REGIME START =====\r\n");
+
+    T_Idle();
+    T_Direction();
+    T_Duty();
+    T_EncoderQuiet();
+    T_DiagB();
+    T_DiagPwmNoise();
+    T_RunDirections();
+    T_SpeedSweep();
+#if TEST_RUN_WATCHDOG
+    T_Watchdog();
+#endif
+
+    sleep();   /* leave everything off */
+    T_Print("===== DONE: %lu passed, %lu failed =====\r\n",
+            (unsigned long)t_pass, (unsigned long)t_fail);
+}
+
+#endif /* RUN_TESTS */
 /* USER CODE END 0 */
 
 /**
@@ -353,7 +822,7 @@ int main(void)
 
   /* USER CODE END SysInit */
 
-
+  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_FDCAN1_Init();
   MX_TIM1_Init();
@@ -368,6 +837,26 @@ int main(void)
       HAL_MAX_DELAY
   );
 
+  /* Bridges are already low from MX_GPIO_Init; build the motor table and
+   * put every motor in a known coasting state before anything runs. */
+  Motors_Init();
+  Motors_SetDirectionAll(M_COAST);
+  Motors_SetSpeedAll(0U);
+
+  /* These two were never started in the original -- they only worked because
+   * a zero-initialised .now made elapsed() return the absolute tick. */
+  start_timer(&timer2);
+  start_timer(&timer3_CAN_UDS);
+
+  /* Nothing in the loop below calls go()/back() -- the original code never
+   * commanded a movement, it only toggled an LED and sent status messages.
+   * Uncomment to sanity-check wiring and direction on the bench before
+   * wiring this up to whatever is meant to trigger it (a CAN command, the
+   * user button, etc). Watch the actuators are clear to move first. */
+  // go(40);              // both actuators extend at 40% duty
+  // HAL_Delay(3000);
+  // brake();
+
   /* USER CODE END 2 */
 
   /* Initialize leds */
@@ -376,7 +865,7 @@ int main(void)
   /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
   BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */ /*
+  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
   BspCOMInit.BaudRate   = 115200;
   BspCOMInit.WordLength = COM_WORDLENGTH_8B;
   BspCOMInit.StopBits   = COM_STOPBITS_1;
@@ -386,13 +875,7 @@ int main(void)
   {
     Error_Handler();
   }
-  HAL_UART_Transmit(
-      &huart2,
-      (uint8_t *)"AFTER BSP\r\n",
-      sizeof("AFTER BSP\r\n") - 1,
-      1000
-  );
-*/
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   HAL_FDCAN_Start(&hfdcan1);
@@ -410,101 +893,65 @@ int main(void)
   count.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
   count.MessageMarker = 0;
   uint8_t CAN_counter = 0;
-  static char uart_buffer[96];
-  uint32_t last_hall_log_ms;
+  static char uart_buffer[64];
 
-  //if (RUN_CALIBRATION_ON_BOOT) {
-  //    runCalibrationSequence();
-  //}
 
-  last_hall_log_ms = HAL_GetTick();
-
-  // Example: extend both actuators 150mm at ~50% duty. Remove/replace this
-  // with whatever triggers a move in your app (button, CAN command, etc).
-  // float example_targets[NUM_MOTORS] = {150.0f, 150.0f};
-  // moveAllMM(example_targets, full_cycle / 2);
-
-  // Quick motor reset helpers (uses the PWM duty already in the CCR registers):
-  // reverse();
-  // go
-  HAL_UART_Transmit(
-      &huart2,
-      (uint8_t *)"time_ms,M1_total,M2_total,M1_position,M2_position\r\n",
-      sizeof("time_ms,M1_total,M2_total,M1_position,M2_position\r\n") - 1U,
-      HAL_MAX_DELAY
-  );
-  runCalibrationSequence();
   while (1)
   {
-
-	  // Independently stops each actuator the moment IT reaches its own quota.
-	  motors_check();
-
-	  //Task 1: LED toggle
-	  	  uint32_t elapsed_time2 = elapsed(timer2);
-	  	      if (elapsed_time2 - timer2.sec_marker >= 50U){
-	  	    	  //BSP_LED_Toggle(LED_GREEN);
-	  	    	  timer2.sec_marker += 50U;
-	  	      }
+	  Test_RunAll();
+//	  back(50);
 
 
-	  // Log M1/M2 Hall totals and signed positions as CSV once per second.
-	  uint32_t now_ms = HAL_GetTick();
-	  if ((uint32_t)(now_ms - last_hall_log_ms) >= 1000U) {
-	      uint32_t m1_total;
-	      uint32_t m2_total;
-	      int32_t m1_position;
-	      int32_t m2_position;
 
-	      last_hall_log_ms += 1000U;
+    /* Task 0: actuator runtime watchdog -- every iteration, no timer gate */
+    Motors_ServiceWatchdog();
 
-	      __disable_irq();
-	      m1_total = motors[0].total_ticks;
-	      m2_total = motors[1].total_ticks;
-	      m1_position = motors[0].ticks;
-	      m2_position = motors[1].ticks;
-	      __enable_irq();
+#if BENCH_TEST_ENABLED
+    BenchTest_Service();   /* TEMPORARY -- remove once bench testing is done */
+#endif
 
-	      int length = snprintf(
-	          uart_buffer,
-	          sizeof(uart_buffer),
-	          "%lu,%lu,%lu,%ld,%ld\r\n",
-	          (unsigned long)now_ms,
-	          (unsigned long)m1_total,
-	          (unsigned long)m2_total,
-	          (long)m1_position,
-	          (long)m2_position
-	      );
+    /* Task 1: LED toggle, every 50 ms */
+    if (elapsed(&timer2) - timer2.sec_marker >= 50U)
+    {
+        //BSP_LED_Toggle(LED_GREEN);
+        timer2.sec_marker += 50U;
+    }
 
-	      HAL_UART_Transmit(
-	          &huart2,
-	          (uint8_t *)uart_buffer,
-	          (uint16_t)length,
-	          HAL_MAX_DELAY
-	      );
-	  }
+    /* Task 2: report motor 1's encoder count once a second, after the
+     * user button has been pressed at least once. */
+    if (timer1_flag == 1U)
+    {
+        if (elapsed(&timer1) - timer1.sec_marker >= 1000U)
+        {
+            timer1.sec_marker += 1000U;
+            timer1.count++;
 
-	  //Task 3: CAN transmit
-	  uint32_t elapsed_timeCAN = elapsed(timer3_CAN_UDS);
-	  if (elapsed_timeCAN - timer3_CAN_UDS.sec_marker >= 1000U){
-		  uint8_t countData[8];
-		  countData[0] = CAN_counter++;
-	      countData[1] = 0;
-		  countData[2] = 0;
-		  countData[3] = 0;
-		  countData[4] = 0;
-		  countData[5] = 0;
-		  countData[6] = 0;
-		  countData[7] = 0;
-		  HAL_StatusTypeDef txStatus =
-			  HAL_FDCAN_AddMessageToTxFifoQ(
-				  &hfdcan1,
-				  &count,
-				  countData
-				  );
-		  timer3_CAN_UDS.sec_marker += 1000U;
+            int length = snprintf(uart_buffer, sizeof(uart_buffer),
+                                  "%ld\r\n", (long)Motor_GetTicks(0));
 
-		}
+            if (length > 0)
+            {
+                HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer,
+                                  (uint16_t)length, HAL_MAX_DELAY);
+            }
+        }
+    }
+
+    /* Task 3: CAN heartbeat, once a second */
+    if (elapsed(&timer3_CAN_UDS) - timer3_CAN_UDS.sec_marker >= 1000U)
+    {
+        uint8_t countData[8] = {0};
+        countData[0] = CAN_counter++;
+
+        if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &count, countData) != HAL_OK)
+        {
+            /* TX FIFO full or the peripheral is bus-off. Don't trap here --
+             * a dead CAN bus should not stop the motor control loop. */
+            __NOP();
+        }
+
+        timer3_CAN_UDS.sec_marker += 1000U;
+    }
 
 
 
@@ -738,7 +1185,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 2125;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -747,14 +1194,6 @@ static void MX_TIM2_Init(void)
   }
   sConfigOC.Pulse = 2125;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -780,7 +1219,6 @@ static void MX_TIM3_Init(void)
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_SlaveConfigTypeDef sSlaveConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
@@ -800,10 +1238,6 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sSlaveConfig.SlaveMode = TIM_SLAVEMODE_RESET;
   sSlaveConfig.InputTrigger = TIM_TS_ITR0;
   if (HAL_TIM_SlaveConfigSynchro(&htim3, &sSlaveConfig) != HAL_OK)
@@ -816,22 +1250,9 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 2125;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -902,50 +1323,36 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, M1N_Pin|M2N_Pin|M3N_Pin|M4N_Pin
-                          |M5N_Pin|M6N_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, M1N_Pin|M2N_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, M1P_Pin|M2P_Pin|M3P_Pin|M4P_Pin
-                          |M5P_Pin|M6P_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, M1P_Pin|M2P_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : HALL_1A_Pin HALL_2A_Pin HALL_3A_Pin HALL_4A_Pin
-                           HALL_5A_Pin HALL_6A_Pin */
-  GPIO_InitStruct.Pin = HALL_1A_Pin|HALL_2A_Pin|HALL_3A_Pin|HALL_4A_Pin
-                          |HALL_5A_Pin|HALL_6A_Pin;
+  /*Configure GPIO pins : HALL_1A_Pin HALL_2A_Pin */
+  GPIO_InitStruct.Pin = HALL_1A_Pin|HALL_2A_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : M1N_Pin M2N_Pin M3N_Pin M4N_Pin
-                           M5N_Pin M6N_Pin */
-  GPIO_InitStruct.Pin = M1N_Pin|M2N_Pin|M3N_Pin|M4N_Pin
-                          |M5N_Pin|M6N_Pin;
+  /*Configure GPIO pins : M1N_Pin M2N_Pin */
+  GPIO_InitStruct.Pin = M1N_Pin|M2N_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : M1P_Pin M2P_Pin M3P_Pin M4P_Pin
-                           M5P_Pin M6P_Pin */
-  GPIO_InitStruct.Pin = M1P_Pin|M2P_Pin|M3P_Pin|M4P_Pin
-                          |M5P_Pin|M6P_Pin;
+  /*Configure GPIO pins : M1P_Pin M2P_Pin */
+  GPIO_InitStruct.Pin = M1P_Pin|M2P_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : HALL_1B_Pin HALL_2B_Pin HALL_3B_Pin HALL_4B_Pin */
-  GPIO_InitStruct.Pin = HALL_1B_Pin|HALL_2B_Pin|HALL_3B_Pin|HALL_4B_Pin;
+  /*Configure GPIO pins : HALL_1B_Pin HALL_2B_Pin */
+  GPIO_InitStruct.Pin = HALL_1B_Pin|HALL_2B_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : HALL_5B_Pin HALL_6B_Pin */
-  GPIO_InitStruct.Pin = HALL_5B_Pin|HALL_6B_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
@@ -953,15 +1360,6 @@ static void MX_GPIO_Init(void)
 
   HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -973,29 +1371,54 @@ void BSP_PB_Callback(Button_TypeDef Button)
 {
     if (Button == BUTTON_USER)
     {
-        timer1 = start_timer();
+        /* Simple debounce: ignore edges within 200 ms of the last accepted one. */
+        static uint32_t last_press = 0U;
+        uint32_t now = HAL_GetTick();
+        if ((uint32_t)(now - last_press) < 200U) { return; }
+        last_press = now;
+
+        start_timer(&timer1);
         timer1_flag = 1U;
     }
 }
 
-// Table lookup keeps M1 and M2 Hall input handling consistent.
+/* One falling edge on HALL_xA; HALL_xB level gives the direction (1x decode).
+ *
+ * NOTE: this function overrides the weak one in the Nucleo BSP, which is what
+ * normally dispatches the user button. The BUTTON_USER branch below restores
+ * that. If your BSP defines HAL_GPIO_EXTI_Callback non-weak you'll get a
+ * duplicate-symbol link error instead -- in that case delete this function
+ * and put the hall decoding in the BSP's callback, or in the EXTI IRQ
+ * handlers in stm32g4xx_it.c directly. */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    for (uint8_t i = 0; i < NUM_MOTORS; i++) {
-        if (GPIO_Pin == motors_hw[i].hall_a_pin) {
-            motors[i].distance_ticks++;
-            motors[i].total_ticks++;
+    static const uint16_t hall_a[MOTOR_COUNT] = {
+        HALL_1A_Pin, HALL_2A_Pin
+    };
 
-            if ((motors_hw[i].hall_b_port->IDR & motors_hw[i].hall_b_pin) != 0U) {
+#ifdef BUTTON_USER_PIN
+    if (GPIO_Pin == BUTTON_USER_PIN)
+    {
+        BSP_PB_Callback(BUTTON_USER);
+        return;
+    }
+#endif
+
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        if (GPIO_Pin == hall_a[i])
+        {
+            if ((motors[i].hall_b_port->IDR & motors[i].hall_b_pin) != 0U)
+            {
                 motors[i].ticks++;
-            } else {
+            }
+            else
+            {
                 motors[i].ticks--;
             }
             return;
         }
     }
-    // Not one of the two motor Hall pins (e.g. user button EXTI) - ignore here,
-    // BSP_PB_Callback handles the button separately.
 }
 /* USER CODE END 4 */
 
@@ -1006,8 +1429,29 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+
+  /* Kill the drive before trapping. The original spun here forever with the
+   * PWM peripheral still running at the last duty cycle -- on a motor
+   * controller that means six motors keep turning after a fault.
+   *
+   * Direct register writes, because this can be reached from an MX_*_Init()
+   * before the corresponding HAL handle is valid. Writes to a peripheral
+   * whose clock is off are simply ignored, which is fine. */
+  TIM1->CR1  &= ~TIM_CR1_CEN;
+  TIM2->CR1  &= ~TIM_CR1_CEN;
+  TIM3->CR1  &= ~TIM_CR1_CEN;
+  TIM1->BDTR &= ~TIM_BDTR_MOE;        /* advanced timer: drop the outputs */
+  TIM1->CCER  = 0U;
+  TIM2->CCER  = 0U;
+  TIM3->CCER  = 0U;
+
+  /* Both A and B low on both channels -> both actuators brake (the only
+   * "off" state this driver supports). Using literal pin defines, not the
+   * motors[] table, since this can be reached before Motors_Init() runs. */
+  GPIOB->BSRR = ((uint32_t)M1P_Pin << 16) | ((uint32_t)M2P_Pin << 16);
+  GPIOC->BSRR = ((uint32_t)M1N_Pin << 16) | ((uint32_t)M2N_Pin << 16);
+
   while (1)
   {
   }

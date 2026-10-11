@@ -1,0 +1,1185 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+COM_InitTypeDef BspCOMInit;
+FDCAN_HandleTypeDef hfdcan1;
+
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
+
+UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+
+/* ===========================================================================
+ * DRIVER: 2-channel high-power H-bridge module, per the datasheet supplied.
+ * Truth table (A, B are the MxP / MxN pins; PA is the MxS PWM pin):
+ *
+ *      A B   -> state
+ *      0 0   -> brake  (defined)
+ *      1 0   -> forward (defined)
+ *      0 1   -> reverse (defined)
+ *      1 1   -> UNDEFINED by the datasheet -- never generate this.
+ *
+ * This board has no documented freewheel/coast state: with A=B=0 you are
+ * always in "brake" regardless of PWM duty. For a self-locking leadscrew
+ * actuator that is the correct idle state anyway (it holds position with
+ * zero drive current), so M_COAST and M_BRAKE below map to the same pins.
+ * =========================================================================*/
+
+/* Dead time between changing A/B. The BTS7960-class driver ICs typically
+ * have their own cross-conduction protection, but a gap costs nothing and
+ * protects you if this turns out to be a simpler discrete-FET board. */
+#ifndef BRIDGE_DEADTIME_ITERS
+#define BRIDGE_DEADTIME_ITERS   16u
+#endif
+
+#define MOTOR_COUNT             2      /* two actuators in use */
+#define PWM_FULL_CYCLE          4249UL /* must match htimX.Init.Period */
+
+
+/* ---------------------------------------------------------------- timers */
+typedef struct {
+    uint32_t now;
+    uint32_t sec_marker;
+    uint32_t count;
+} timer;
+
+static volatile timer timer1;
+static volatile timer timer2;
+static volatile timer timer3_CAN_UDS;
+static volatile uint8_t timer1_flag = 0U;
+
+/* ---------------------------------------------------------------- motors */
+typedef enum {
+    M_COAST = 0,   /* electrically identical to M_BRAKE on this driver */
+    M_FORWARD,
+    M_BACKWARD,
+    M_BRAKE
+} drive_state;
+
+typedef struct {
+    GPIO_TypeDef      *a_port;     /* MxP pin -> driver's "A" input */
+    uint16_t           a_pin;
+    GPIO_TypeDef      *b_port;     /* MxN pin -> driver's "B" input */
+    uint16_t           b_pin;
+    TIM_HandleTypeDef *htim;       /* PWM timer driving the MxS ("PA") pin */
+    uint32_t           channel;
+    GPIO_TypeDef      *hall_b_port;
+    uint16_t           hall_b_pin;
+    volatile int32_t   ticks;      /* signed: reverse rotation goes negative */
+    uint8_t            speed_pct;
+    drive_state        state;
+} motor;
+
+static motor motors[MOTOR_COUNT];
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_FDCAN1_Init(void);
+static void MX_TIM1_Init(void);
+static void MX_TIM2_Init(void);
+static void MX_TIM3_Init(void);
+static void MX_USART2_UART_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* ---------------------------------------------------------------- timers */
+/* Take a pointer so a volatile timer can be started in place, and so the
+ * struct is never copied word-by-word out from under an interrupt. */
+static void start_timer(volatile timer *t)
+{
+    t->now        = HAL_GetTick();
+    t->sec_marker = 0U;
+    t->count      = 0U;
+}
+
+static uint32_t elapsed(const volatile timer *t)
+{
+    /* Unsigned subtraction: correct across the 2^32 ms tick rollover. */
+    return (uint32_t)(HAL_GetTick() - t->now);
+}
+
+
+/* ------------------------------------------------------- motor table init */
+/* Two actuators, driven through M1P/M1N (A/B) + M1S (PWM) and
+ * M2P/M2N (A/B) + M2S (PWM). M1S=PA0, M2S=PA1 map to TIM2 CH1/CH2. */
+static void Motors_Init(void)
+{
+    static const struct {
+        GPIO_TypeDef *a_port; uint16_t a_pin;
+        GPIO_TypeDef *b_port; uint16_t b_pin;
+        uint32_t      channel;
+        GPIO_TypeDef *hb_port; uint16_t hb_pin;
+    } map[MOTOR_COUNT] = {
+        { M1P_GPIO_Port, M1P_Pin, M1N_GPIO_Port, M1N_Pin, TIM_CHANNEL_1, HALL_1B_GPIO_Port, HALL_1B_Pin },
+        { M2P_GPIO_Port, M2P_Pin, M2N_GPIO_Port, M2N_Pin, TIM_CHANNEL_2, HALL_2B_GPIO_Port, HALL_2B_Pin },
+    };
+
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        motors[i].a_port      = map[i].a_port;
+        motors[i].a_pin       = map[i].a_pin;
+        motors[i].b_port      = map[i].b_port;
+        motors[i].b_pin       = map[i].b_pin;
+        motors[i].htim        = &htim2;
+        motors[i].channel     = map[i].channel;
+        motors[i].hall_b_port = map[i].hb_port;
+        motors[i].hall_b_pin  = map[i].hb_pin;
+        motors[i].ticks       = 0;
+        motors[i].speed_pct   = 0U;
+        motors[i].state       = M_COAST;
+    }
+}
+
+/* ------------------------------------------------------------- bridge I/O */
+static inline void bridge_deadtime(void)
+{
+    for (volatile uint32_t i = 0U; i < BRIDGE_DEADTIME_ITERS; i++)
+    {
+        __NOP();
+    }
+}
+
+/* A/B truth table per the datasheet: 00 brake, 10 forward, 01 reverse,
+ * 11 never generated. Both pins are always dropped first so a transition
+ * can never pass through the forbidden 1,1 state, even transiently. */
+static void Motor_SetDirection(int idx, drive_state s)
+{
+    if (idx < 0 || idx >= MOTOR_COUNT) { return; }
+    motor *m = &motors[idx];
+    if (m->state == s) { return; }
+
+    /* 1. A=0, B=0 (brake state, and the only safe transit point). */
+    m->a_port->BSRR = (uint32_t)m->a_pin << 16;
+    m->b_port->BSRR = (uint32_t)m->b_pin << 16;
+
+    bridge_deadtime();
+
+    /* 2. Raise the one pin this state needs -- never both. */
+    switch (s)
+    {
+    case M_FORWARD:
+        m->a_port->BSRR = m->a_pin;      /* A=1, B=0 */
+        break;
+    case M_BACKWARD:
+        m->b_port->BSRR = m->b_pin;      /* A=0, B=1 */
+        break;
+    case M_BRAKE:
+    case M_COAST:                        /* no freewheel state on this driver */
+    default:
+        break;                           /* A=0, B=0 already set above */
+    }
+
+    m->state = s;
+}
+
+/* -------------------------------------------------------------- PWM duty */
+/* Duty is per motor. Writing CCR directly is a mid-cycle write: enable OC
+ * preload (TIM_OCFAST / CCxPE) in MX_TIM2_Init if you see glitches under load. */
+static void Motor_SetSpeed(int idx, uint8_t pct)
+{
+    if (idx < 0 || idx >= MOTOR_COUNT) { return; }
+    if (pct > 98U) { pct = 98U; }   /* clamp; never trap on a bad argument */
+
+    motors[idx].speed_pct = pct;
+    __HAL_TIM_SET_COMPARE(motors[idx].htim,
+                          motors[idx].channel,
+                          (uint32_t)((PWM_FULL_CYCLE * pct) / 100UL));
+}
+
+static void Motors_SetSpeedAll(uint8_t pct)
+{
+    for (int i = 0; i < MOTOR_COUNT; i++) { Motor_SetSpeed(i, pct); }
+}
+
+/* --------------------------------------------------------- PWM run/stop */
+/* Only TIM2 CH1/CH2 are in use now (M1S, M2S). TIM1 and TIM3 stay stopped;
+ * leave MX_TIM1_Init/MX_TIM3_Init in place since removing them means also
+ * re-deriving TIM2's slave clock (it syncs off TIM1 via ITR0). */
+static void Motors_StartPWM(void)
+{
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);   /* master, drives TIM2's sync */
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+}
+
+static void Motors_StopPWM(void)
+{
+    HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+}
+
+/* ------------------------------------------------- all-motor convenience */
+static void Motors_SetDirectionAll(drive_state s)
+{
+    for (int i = 0; i < MOTOR_COUNT; i++) { Motor_SetDirection(i, s); }
+}
+
+/* Runtime watchdog: cuts drive if a motor has been actively running longer
+ * than this. Set it a comfortable margin above your actuator's full-stroke
+ * travel time (e.g. stroke_mm / rated_speed_mm_per_s * 1000, plus ~30%).
+ * Internal limit switches stop a normal, unobstructed stroke; this catches
+ * the case where something jams mid-travel and the motor would otherwise
+ * just sit there at stall current. TUNE THIS for your actuator before use. */
+#ifndef ACTUATOR_MAX_RUN_MS
+#define ACTUATOR_MAX_RUN_MS   5000UL   /* PLACEHOLDER -- replace with your
+                                         * actuator's measured full-stroke
+                                         * time + ~30% margin before real use */
+#endif
+
+static uint32_t motor_run_started[MOTOR_COUNT];   /* HAL_GetTick() at drive start, 0 = not running */
+
+/* Extend/retract with an explicit speed, so a direction call can never
+ * leave a motor sitting at 0% duty. This replaces the old parameterless
+ * go()/back(), which set direction but never touched duty cycle -- calling
+ * either alone did not move the actuator. */
+void go(uint8_t speed_pct)
+{
+    Motors_SetSpeedAll(speed_pct);
+    Motors_SetDirectionAll(M_FORWARD);
+    Motors_StartPWM();
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = now; }
+}
+
+void back(uint8_t speed_pct)
+{
+    Motors_SetSpeedAll(speed_pct);
+    Motors_SetDirectionAll(M_BACKWARD);
+    Motors_StartPWM();
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = now; }
+}
+
+void brake(void)
+{
+    /* Cut drive before shorting the winding, or the brake fights the PWM. */
+    Motors_SetSpeedAll(0U);
+    Motors_StopPWM();
+    Motors_SetDirectionAll(M_BRAKE);
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = 0U; }
+}
+
+void sleep(void)
+{
+    Motors_SetSpeedAll(0U);
+    Motors_StopPWM();
+    Motors_SetDirectionAll(M_COAST);
+    for (int i = 0; i < MOTOR_COUNT; i++) { motor_run_started[i] = 0U; }
+}
+
+void changespeed(uint8_t newspeed)
+{
+    Motors_SetSpeedAll(newspeed);
+}
+
+/* Replaces the brake_single_motor() stub. Index is 0-based: 0 == motor 1. */
+void brake_single_motor(int idx)
+{
+    if (idx < 0 || idx >= MOTOR_COUNT) { return; }
+    Motor_SetSpeed(idx, 0U);
+    Motor_SetDirection(idx, M_BRAKE);
+    motor_run_started[idx] = 0U;
+}
+
+/* Replaces go_increment(). Nudges every motor's duty by a signed delta;
+ * only meaningful once a direction is already set via go()/back(). */
+void go_increment(int8_t increment)
+{
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        int next = (int)motors[i].speed_pct + increment;
+        if (next < 0)   { next = 0; }
+        if (next > 100) { next = 100; }
+        Motor_SetSpeed(i, (uint8_t)next);
+    }
+}
+
+/* Call once per main-loop iteration. Brakes any motor that has been
+ * actively driving longer than ACTUATOR_MAX_RUN_MS -- the catch for a
+ * jam or obstruction that the actuator's own end-of-stroke switches
+ * won't see. */
+void Motors_ServiceWatchdog(void)
+{
+    uint32_t now = HAL_GetTick();
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        if (motor_run_started[i] != 0U &&
+            (uint32_t)(now - motor_run_started[i]) >= ACTUATOR_MAX_RUN_MS)
+        {
+            brake_single_motor(i);
+        }
+    }
+}
+
+/* ===========================================================================
+ * TEMPORARY BENCH TEST -- drives go()/back()/brake()/sleep() in a fixed
+ * sequence so you can watch behavior without a debugger or a UART command
+ * parser. Runs as its own non-blocking task alongside everything else in
+ * the main loop, rather than blocking with HAL_Delay.
+ *
+ * FIRST TIME WITH A REAL ACTUATOR CONNECTED: these defaults are deliberately
+ * conservative (low speed, short phase). Confirm direction and behavior at
+ * this setting before raising BENCH_TEST_SPEED_PCT or BENCH_TEST_PHASE_MS.
+ * Set ACTUATOR_MAX_RUN_MS to your actual stroke time before this test, not
+ * the placeholder value above.
+ *
+ * DELETE THIS WHOLE BLOCK, and the BenchTest_Service() call in main(),
+ * once you're done testing -- this is not meant to survive into whatever
+ * actually triggers movement in the finished device.
+ * =========================================================================*/
+#define BENCH_TEST_ENABLED     0     /* set to 0 (or delete the block) when done */
+#define BENCH_TEST_SPEED_PCT   15U   /* start low; raise once direction is confirmed */
+#define BENCH_TEST_PHASE_MS    1000UL /* how long FORWARD/BACKWARD run before braking */
+
+#if BENCH_TEST_ENABLED
+typedef enum { BT_COAST, BT_FORWARD, BT_BRAKE1, BT_BACKWARD, BT_BRAKE2 } bench_test_state;
+
+static bench_test_state  bench_state   = BT_COAST;
+static volatile timer    bench_timer;
+static uint8_t           bench_started = 0U;
+
+static void BenchTest_Print(const char *s, size_t len)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)s, (uint16_t)len, HAL_MAX_DELAY);
+}
+#define BENCH_PRINT(lit) BenchTest_Print((lit), sizeof(lit) - 1U)
+
+static void BenchTest_Service(void)
+{
+    if (!bench_started) { start_timer(&bench_timer); bench_started = 1U; }
+
+    /* COAST/BRAKE phases pause for BENCH_TEST_PHASE_MS too, so you have
+     * time to visually confirm the actuator actually stopped before it
+     * moves again. */
+    if (elapsed(&bench_timer) < BENCH_TEST_PHASE_MS) { return; }
+    start_timer(&bench_timer);
+
+    switch (bench_state)
+    {
+    case BT_COAST:
+        BENCH_PRINT("BENCH: COAST\r\n");
+        sleep();
+        bench_state = BT_FORWARD;
+        break;
+    case BT_FORWARD:
+        BENCH_PRINT("BENCH: FORWARD\r\n");
+        go(BENCH_TEST_SPEED_PCT);     /* expect: M1P/M2P high, M1N/M2N low */
+        bench_state = BT_BRAKE1;
+        break;
+    case BT_BRAKE1:
+        BENCH_PRINT("BENCH: BRAKE\r\n");
+        brake();                      /* expect: all four pins low */
+        bench_state = BT_BACKWARD;
+        break;
+    case BT_BACKWARD:
+        BENCH_PRINT("BENCH: BACKWARD\r\n");
+        back(BENCH_TEST_SPEED_PCT);   /* expect: M1N/M2N high, M1P/M2P low */
+        bench_state = BT_BRAKE2;
+        break;
+    case BT_BRAKE2:
+        BENCH_PRINT("BENCH: BRAKE\r\n");
+        brake();
+        bench_state = BT_COAST;
+        break;
+    }
+}
+#endif /* BENCH_TEST_ENABLED */
+
+/* --------------------------------------------------------------- encoder */
+static int32_t Motor_GetTicks(int idx)
+{
+    int32_t v;
+    if (idx < 0 || idx >= MOTOR_COUNT) { return 0; }
+    /* ticks is written from an EXTI ISR; read it with interrupts masked so
+     * a 32-bit read can't be torn by an update mid-read. */
+    __disable_irq();
+    v = motors[idx].ticks;
+    __enable_irq();
+    return v;
+}
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+  //uint32_t now = HAL_GetTick();
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+
+  MX_GPIO_Init();
+  MX_FDCAN1_Init();
+  MX_TIM1_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
+  MX_USART2_UART_Init();
+  /* USER CODE BEGIN 2 */
+  HAL_UART_Transmit(
+      &huart2,
+      (uint8_t *)"STM32 started\r\n",
+      sizeof("STM32 started\r\n") - 1,
+      HAL_MAX_DELAY
+  );
+
+  /* Bridges are already low from MX_GPIO_Init; build the motor table and
+   * put every motor in a known coasting state before anything runs. */
+  Motors_Init();
+  Motors_SetDirectionAll(M_COAST);
+  Motors_SetSpeedAll(0U);
+
+  /* These two were never started in the original -- they only worked because
+   * a zero-initialised .now made elapsed() return the absolute tick. */
+  start_timer(&timer2);
+  start_timer(&timer3_CAN_UDS);
+
+  /* Nothing in the loop below calls go()/back() -- the original code never
+   * commanded a movement, it only toggled an LED and sent status messages.
+   * Uncomment to sanity-check wiring and direction on the bench before
+   * wiring this up to whatever is meant to trigger it (a CAN command, the
+   * user button, etc). Watch the actuators are clear to move first. */
+  // go(40);              // both actuators extend at 40% duty
+  // HAL_Delay(3000);
+  // brake();
+
+  /* USER CODE END 2 */
+
+  /* Initialize leds */
+  BSP_LED_Init(LED_GREEN);
+
+  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
+  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
+
+  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */ /*
+  BspCOMInit.BaudRate   = 115200;
+  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
+  BspCOMInit.StopBits   = COM_STOPBITS_1;
+  BspCOMInit.Parity     = COM_PARITY_NONE;
+  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
+  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
+  {
+    Error_Handler();
+  }
+  HAL_UART_Transmit(
+      &huart2,
+      (uint8_t *)"AFTER BSP\r\n",
+      sizeof("AFTER BSP\r\n") - 1,
+      1000
+  );
+*/
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  HAL_FDCAN_Start(&hfdcan1);
+
+
+  FDCAN_TxHeaderTypeDef count;
+
+  count.Identifier = 0x123;
+  count.IdType = FDCAN_STANDARD_ID;
+  count.TxFrameType = FDCAN_DATA_FRAME;
+  count.DataLength = FDCAN_DLC_BYTES_8;
+  count.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  count.BitRateSwitch = FDCAN_BRS_OFF;
+  count.FDFormat = FDCAN_CLASSIC_CAN;
+  count.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+  count.MessageMarker = 0;
+  uint8_t CAN_counter = 0;
+  static char uart_buffer[64];
+
+
+  while (1)
+  {
+	  go(40);
+
+
+
+    /* Task 0: actuator runtime watchdog -- every iteration, no timer gate */
+    Motors_ServiceWatchdog();
+
+#if BENCH_TEST_ENABLED
+    BenchTest_Service();   /* TEMPORARY -- remove once bench testing is done */
+#endif
+
+    /* Task 1: LED toggle, every 50 ms */
+    if (elapsed(&timer2) - timer2.sec_marker >= 50U)
+    {
+        //BSP_LED_Toggle(LED_GREEN);
+        timer2.sec_marker += 50U;
+    }
+
+    /* Task 2: report motor 1's encoder count once a second, after the
+     * user button has been pressed at least once. */
+    if (timer1_flag == 1U)
+    {
+        if (elapsed(&timer1) - timer1.sec_marker >= 1000U)
+        {
+            timer1.sec_marker += 1000U;
+            timer1.count++;
+
+            int length = snprintf(uart_buffer, sizeof(uart_buffer),
+                                  "%ld\r\n", (long)Motor_GetTicks(0));
+
+            if (length > 0)
+            {
+                HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer,
+                                  (uint16_t)length, HAL_MAX_DELAY);
+            }
+        }
+    }
+
+    /* Task 3: CAN heartbeat, once a second */
+    if (elapsed(&timer3_CAN_UDS) - timer3_CAN_UDS.sec_marker >= 1000U)
+    {
+        uint8_t countData[8] = {0};
+        countData[0] = CAN_counter++;
+
+        if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &count, countData) != HAL_OK)
+        {
+            /* TX FIFO full or the peripheral is bus-off. Don't trap here --
+             * a dead CAN bus should not stop the motor control loop. */
+            __NOP();
+        }
+
+        timer3_CAN_UDS.sec_marker += 1000U;
+    }
+
+
+
+
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+}
+
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV2;
+  RCC_OscInitStruct.PLL.PLLN = 8;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV6;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief FDCAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_FDCAN1_Init(void)
+{
+
+  /* USER CODE BEGIN FDCAN1_Init 0 */
+
+  /* USER CODE END FDCAN1_Init 0 */
+
+  /* USER CODE BEGIN FDCAN1_Init 1 */
+
+  /* USER CODE END FDCAN1_Init 1 */
+  hfdcan1.Instance = FDCAN1;
+  hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
+  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.TransmitPause = DISABLE;
+  hfdcan1.Init.ProtocolException = DISABLE;
+  hfdcan1.Init.NominalPrescaler = 8;
+  hfdcan1.Init.NominalSyncJumpWidth = 1;
+  hfdcan1.Init.NominalTimeSeg1 = 11;
+  hfdcan1.Init.NominalTimeSeg2 = 4;
+  hfdcan1.Init.DataPrescaler = 1;
+  hfdcan1.Init.DataSyncJumpWidth = 1;
+  hfdcan1.Init.DataTimeSeg1 = 1;
+  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.ExtFiltersNbr = 0;
+  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
+  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN FDCAN1_Init 2 */
+
+  /* USER CODE END FDCAN1_Init 2 */
+
+}
+
+/**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+  htim1.Init.Period = 4249;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakFilter = 0;
+  sBreakDeadTimeConfig.BreakAFMode = TIM_BREAK_AFMODE_INPUT;
+  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+  sBreakDeadTimeConfig.Break2Filter = 0;
+  sBreakDeadTimeConfig.Break2AFMode = TIM_BREAK_AFMODE_INPUT;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+  htim2.Init.Period = 4249;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_RESET;
+  sSlaveConfig.InputTrigger = TIM_TS_ITR0;
+  if (HAL_TIM_SlaveConfigSynchro(&htim2, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.Pulse = 2125;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 0;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+  htim3.Init.Period = 4249;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_RESET;
+  sSlaveConfig.InputTrigger = TIM_TS_ITR0;
+  if (HAL_TIM_SlaveConfigSynchro(&htim3, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 2125;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, M1N_Pin|M2N_Pin|M3N_Pin|M4N_Pin
+                          |M5N_Pin|M6N_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, M1P_Pin|M2P_Pin|M3P_Pin|M4P_Pin
+                          |M5P_Pin|M6P_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : HALL_1A_Pin HALL_2A_Pin HALL_3A_Pin HALL_4A_Pin
+                           HALL_5A_Pin HALL_6A_Pin */
+  GPIO_InitStruct.Pin = HALL_1A_Pin|HALL_2A_Pin|HALL_3A_Pin|HALL_4A_Pin
+                          |HALL_5A_Pin|HALL_6A_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : M1N_Pin M2N_Pin M3N_Pin M4N_Pin
+                           M5N_Pin M6N_Pin */
+  GPIO_InitStruct.Pin = M1N_Pin|M2N_Pin|M3N_Pin|M4N_Pin
+                          |M5N_Pin|M6N_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : M1P_Pin M2P_Pin M3P_Pin M4P_Pin
+                           M5P_Pin M6P_Pin */
+  GPIO_InitStruct.Pin = M1P_Pin|M2P_Pin|M3P_Pin|M4P_Pin
+                          |M5P_Pin|M6P_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : HALL_1B_Pin HALL_2B_Pin HALL_3B_Pin HALL_4B_Pin */
+  GPIO_InitStruct.Pin = HALL_1B_Pin|HALL_2B_Pin|HALL_3B_Pin|HALL_4B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : HALL_5B_Pin HALL_6B_Pin */
+  GPIO_InitStruct.Pin = HALL_5B_Pin|HALL_6B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+void BSP_PB_Callback(Button_TypeDef Button)
+{
+    if (Button == BUTTON_USER)
+    {
+        /* Simple debounce: ignore edges within 200 ms of the last accepted one. */
+        static uint32_t last_press = 0U;
+        uint32_t now = HAL_GetTick();
+        if ((uint32_t)(now - last_press) < 200U) { return; }
+        last_press = now;
+
+        start_timer(&timer1);
+        timer1_flag = 1U;
+    }
+}
+
+/* One falling edge on HALL_xA; HALL_xB level gives the direction (1x decode).
+ *
+ * NOTE: this function overrides the weak one in the Nucleo BSP, which is what
+ * normally dispatches the user button. The BUTTON_USER branch below restores
+ * that. If your BSP defines HAL_GPIO_EXTI_Callback non-weak you'll get a
+ * duplicate-symbol link error instead -- in that case delete this function
+ * and put the hall decoding in the BSP's callback, or in the EXTI IRQ
+ * handlers in stm32g4xx_it.c directly. */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    static const uint16_t hall_a[MOTOR_COUNT] = {
+        HALL_1A_Pin, HALL_2A_Pin
+    };
+
+#ifdef BUTTON_USER_PIN
+    if (GPIO_Pin == BUTTON_USER_PIN)
+    {
+        BSP_PB_Callback(BUTTON_USER);
+        return;
+    }
+#endif
+
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        if (GPIO_Pin == hall_a[i])
+        {
+            if ((motors[i].hall_b_port->IDR & motors[i].hall_b_pin) != 0U)
+            {
+                motors[i].ticks++;
+            }
+            else
+            {
+                motors[i].ticks--;
+            }
+            return;
+        }
+    }
+}
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  __disable_irq();
+
+  /* Kill the drive before trapping. The original spun here forever with the
+   * PWM peripheral still running at the last duty cycle -- on a motor
+   * controller that means six motors keep turning after a fault.
+   *
+   * Direct register writes, because this can be reached from an MX_*_Init()
+   * before the corresponding HAL handle is valid. Writes to a peripheral
+   * whose clock is off are simply ignored, which is fine. */
+  TIM1->CR1  &= ~TIM_CR1_CEN;
+  TIM2->CR1  &= ~TIM_CR1_CEN;
+  TIM3->CR1  &= ~TIM_CR1_CEN;
+  TIM1->BDTR &= ~TIM_BDTR_MOE;        /* advanced timer: drop the outputs */
+  TIM1->CCER  = 0U;
+  TIM2->CCER  = 0U;
+  TIM3->CCER  = 0U;
+
+  /* Both A and B low on both channels -> both actuators brake (the only
+   * "off" state this driver supports). Using literal pin defines, not the
+   * motors[] table, since this can be reached before Motors_Init() runs. */
+  GPIOB->BSRR = ((uint32_t)M1P_Pin << 16) | ((uint32_t)M2P_Pin << 16);
+  GPIOC->BSRR = ((uint32_t)M1N_Pin << 16) | ((uint32_t)M2N_Pin << 16);
+
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

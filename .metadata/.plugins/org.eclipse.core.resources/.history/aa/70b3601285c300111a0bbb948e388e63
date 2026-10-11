@@ -1,0 +1,312 @@
+/* ===========================================================================
+ * TEST REGIME for the 2-actuator H-bridge + Hall encoder firmware.
+ *
+ * WHERE THIS GOES
+ *   Paste this whole block into main.c inside "USER CODE BEGIN 0"
+ *   (after the PFP block, so motors[], Motor_SetDirection(), Motor_SetSpeed(),
+ *   Motor_GetTicks(), go(), back(), brake(), sleep() and Motors_ServiceWatchdog()
+ *   are already defined).
+ *
+ * HOW IT RUNS
+ *   In "USER CODE BEGIN 2", after Motors_Init()/SetDirectionAll/SetSpeedAll
+ *   and BEFORE BSP_COM_Init is NOT acceptable -- call it after the COM port
+ *   is initialised. Easiest spot: first line inside "USER CODE BEGIN WHILE":
+ *
+ *       #if RUN_TESTS
+ *         Test_RunAll();
+ *       #endif
+ *
+ *   ALSO delete the stray  go(50);  at the top of while(1).
+ *
+ * SAFETY
+ *   Tests 1-4 never move the actuators (PWM stopped, duty 0).
+ *   Tests 5-6 DO drive both actuators at TEST_SPEED_PCT. Make sure they are
+ *   clear to move and not sitting hard against an end stop in the direction
+ *   being tested. Test 7 (watchdog) drives for ACTUATOR_MAX_RUN_MS and is
+ *   off by default.
+ * =========================================================================*/
+#include <stdarg.h>
+#include <stdlib.h>
+
+#define RUN_TESTS               1
+#define TEST_SPEED_PCT          15U      /* keep low on first run            */
+#define TEST_RUN_MS             1000UL   /* drive time per direction         */
+#define TEST_RUN_WATCHDOG       0        /* 1 = also run the 5 s watchdog test */
+
+/* huart2 was removed from the .ioc, so log through the Nucleo BSP COM port.
+ * Confirm hcom_uart[] exists in your stm32g4xx_nucleo.c; if not, point
+ * TEST_UART at whichever UART_HandleTypeDef you actually have. */
+extern UART_HandleTypeDef hcom_uart[];
+#define TEST_UART               (&hcom_uart[COM1])
+
+#if RUN_TESTS
+
+static uint32_t t_pass = 0U, t_fail = 0U;
+
+static void T_Print(const char *fmt, ...)
+{
+    char buf[128];
+    va_list ap;
+    va_start(ap, fmt);
+    int n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    if (n > 0)
+    {
+        if (n > (int)sizeof(buf) - 1) { n = (int)sizeof(buf) - 1; }
+        HAL_UART_Transmit(TEST_UART, (uint8_t *)buf, (uint16_t)n, HAL_MAX_DELAY);
+    }
+}
+
+static void T_Check(const char *name, int cond)
+{
+    if (cond) { t_pass++; T_Print("  PASS  %s\r\n", name); }
+    else      { t_fail++; T_Print("  FAIL  %s\r\n", name); }
+}
+
+/* Wait ms while still servicing the runtime watchdog. */
+static void T_Delay(uint32_t ms)
+{
+    uint32_t t0 = HAL_GetTick();
+    while ((uint32_t)(HAL_GetTick() - t0) < ms)
+    {
+        Motors_ServiceWatchdog();
+    }
+}
+
+static int T_Out(GPIO_TypeDef *p, uint16_t pin)
+{
+    return (p->ODR & pin) != 0U;
+}
+
+static void T_ZeroTicks(void)
+{
+    __disable_irq();
+    for (int i = 0; i < MOTOR_COUNT; i++) { motors[i].ticks = 0; }
+    __enable_irq();
+}
+
+/* ---------------------------------------------------------------- TEST 1 */
+/* Power-on state: everything low, duty zero, state coast. */
+static void T_Idle(void)
+{
+    T_Print("[1] Idle state\r\n");
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Check("A low",  !T_Out(motors[i].a_port, motors[i].a_pin));
+        T_Check("B low",  !T_Out(motors[i].b_port, motors[i].b_pin));
+        T_Check("duty 0", __HAL_TIM_GET_COMPARE(motors[i].htim, motors[i].channel) == 0U);
+        T_Check("state coast", motors[i].state == M_COAST);
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 2 */
+/* H-bridge truth table, checked on the output data register.
+ * 00 brake, 10 forward, 01 reverse, 11 must NEVER appear. */
+static void T_Direction(void)
+{
+    static const struct { drive_state s; int a; int b; const char *n; } seq[] = {
+        { M_FORWARD,  1, 0, "forward  -> A=1 B=0" },
+        { M_BACKWARD, 0, 1, "backward -> A=0 B=1" },
+        { M_BRAKE,    0, 0, "brake    -> A=0 B=0" },
+        { M_FORWARD,  1, 0, "forward again" },
+        { M_COAST,    0, 0, "coast    -> A=0 B=0" },
+    };
+
+    T_Print("[2] Direction truth table (no PWM, no motion)\r\n");
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        for (unsigned k = 0; k < sizeof(seq) / sizeof(seq[0]); k++)
+        {
+            Motor_SetDirection(i, seq[k].s);
+            int a = T_Out(motors[i].a_port, motors[i].a_pin);
+            int b = T_Out(motors[i].b_port, motors[i].b_pin);
+            T_Check(seq[k].n, a == seq[k].a && b == seq[k].b);
+            T_Check("never 1,1", !(a && b));
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 3 */
+/* Duty cycle maths and clamp. CCR = 4249*pct/100, pct clamped to 98. */
+static void T_Duty(void)
+{
+    static const struct { uint8_t pct; uint32_t ccr; const char *n; } d[] = {
+        {   0,    0, "0%  -> CCR 0"    },
+        {  50, 2124, "50% -> CCR 2124" },
+        {  98, 4164, "98% -> CCR 4164" },
+        { 100, 4164, "100% clamps to 98%" },
+        { 255, 4164, "255 clamps to 98%"  },
+    };
+
+    T_Print("[3] PWM duty registers\r\n");
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        for (unsigned k = 0; k < sizeof(d) / sizeof(d[0]); k++)
+        {
+            Motor_SetSpeed(i, d[k].pct);
+            T_Check(d[k].n,
+                    __HAL_TIM_GET_COMPARE(motors[i].htim, motors[i].channel) == d[k].ccr);
+        }
+        Motor_SetSpeed(i, 0U);
+    }
+    Motor_SetDirection(0, M_COAST);
+    Motor_SetDirection(1, M_COAST);
+}
+
+/* ---------------------------------------------------------------- TEST 4 */
+/* With nothing driven, the encoder must be quiet. Counts here mean a
+ * floating/noisy Hall line, a bad pull-up, or EMI from the driver. */
+static void T_EncoderQuiet(void)
+{
+    T_Print("[4] Encoder quiet while idle (2 s)\r\n");
+    T_ZeroTicks();
+    T_Delay(2000UL);
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        int32_t t = Motor_GetTicks(i);
+        T_Print("      motor %d ticks = %ld\r\n", i + 1, (long)t);
+        T_Check("no spurious ticks", t == 0);
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 5 */
+/* Drive forward then backward. Ticks must move, and with opposite signs.
+ * If both signs are inverted, swap ++/-- in HAL_GPIO_EXTI_Callback.
+ * If ticks are 0, check (a) end stop, (b) the EXTI callback name, (c) the
+ * B pin assignment. */
+static void T_RunDirections(void)
+{
+    int32_t fwd[MOTOR_COUNT], bwd[MOTOR_COUNT];
+
+    T_Print("[5] Drive forward/back at %u%% for %lu ms each\r\n",
+            (unsigned)TEST_SPEED_PCT, (unsigned long)TEST_RUN_MS);
+
+    T_ZeroTicks();
+    go(TEST_SPEED_PCT);
+    T_Delay(TEST_RUN_MS);
+    brake();
+    T_Delay(300UL);                       /* let it settle */
+    for (int i = 0; i < MOTOR_COUNT; i++) { fwd[i] = Motor_GetTicks(i); }
+
+    T_ZeroTicks();
+    back(TEST_SPEED_PCT);
+    T_Delay(TEST_RUN_MS);
+    brake();
+    T_Delay(300UL);
+    for (int i = 0; i < MOTOR_COUNT; i++) { bwd[i] = Motor_GetTicks(i); }
+
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Print("      motor %d: forward %ld, backward %ld\r\n",
+                i + 1, (long)fwd[i], (long)bwd[i]);
+        T_Check("forward counts",  fwd[i] != 0);
+        T_Check("backward counts", bwd[i] != 0);
+        T_Check("forward > 0",     fwd[i] > 0);
+        T_Check("backward < 0",    bwd[i] < 0);
+        T_Check("fwd/back roughly equal magnitude",
+                abs(abs(fwd[i]) - abs(bwd[i])) <= (abs(fwd[i]) / 5 + 2));
+    }
+
+    /* After brake(): outputs low, duty zero. */
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Check("braked: A low", !T_Out(motors[i].a_port, motors[i].a_pin));
+        T_Check("braked: B low", !T_Out(motors[i].b_port, motors[i].b_pin));
+        T_Check("braked: duty 0",
+                __HAL_TIM_GET_COMPARE(motors[i].htim, motors[i].channel) == 0U);
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 6 */
+/* Speed vs tick rate, and round-trip repeatability. Forward at each speed,
+ * then back at the same speed for the same time; net should be near zero. */
+static void T_SpeedSweep(void)
+{
+    static const uint8_t speeds[] = { 10U, 20U, 30U };
+    int32_t prev[MOTOR_COUNT] = { 0 };
+
+    T_Print("[6] Speed sweep (400 ms each way)\r\n");
+    for (unsigned k = 0; k < sizeof(speeds); k++)
+    {
+        int32_t f[MOTOR_COUNT];
+
+        T_ZeroTicks();
+        go(speeds[k]);
+        T_Delay(400UL);
+        brake();
+        T_Delay(300UL);
+        for (int i = 0; i < MOTOR_COUNT; i++) { f[i] = Motor_GetTicks(i); }
+
+        back(speeds[k]);
+        T_Delay(400UL);
+        brake();
+        T_Delay(300UL);
+
+        for (int i = 0; i < MOTOR_COUNT; i++)
+        {
+            int32_t net = Motor_GetTicks(i);
+            T_Print("      %u%%  motor %d: out %ld, net after return %ld\r\n",
+                    (unsigned)speeds[k], i + 1, (long)f[i], (long)net);
+            T_Check("faster -> more ticks", f[i] >= prev[i]);
+            T_Check("round trip returns near start", abs(net) <= (abs(f[i]) / 10 + 2));
+            prev[i] = f[i];
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- TEST 7 */
+#if TEST_RUN_WATCHDOG
+/* Drives until the watchdog must fire. Confirms it trips at
+ * ACTUATOR_MAX_RUN_MS and leaves the bridge in brake. Needs room to travel
+ * (or an obstruction) for that long -- an actuator at its end stop will stall
+ * at current for the full duration. */
+static void T_Watchdog(void)
+{
+    T_Print("[7] Watchdog (%lu ms limit)\r\n", (unsigned long)ACTUATOR_MAX_RUN_MS);
+    uint32_t t0 = HAL_GetTick();
+    uint32_t tripped_at = 0U;
+
+    go(TEST_SPEED_PCT);
+    while ((uint32_t)(HAL_GetTick() - t0) < ACTUATOR_MAX_RUN_MS + 1000UL)
+    {
+        Motors_ServiceWatchdog();
+        if (tripped_at == 0U && motors[0].state == M_BRAKE && motors[1].state == M_BRAKE)
+        {
+            tripped_at = (uint32_t)(HAL_GetTick() - t0);
+        }
+    }
+    T_Print("      tripped after %lu ms\r\n", (unsigned long)tripped_at);
+    T_Check("watchdog tripped", tripped_at != 0U);
+    T_Check("tripped at limit (not early/late)",
+            tripped_at >= ACTUATOR_MAX_RUN_MS && tripped_at <= ACTUATOR_MAX_RUN_MS + 50UL);
+    for (int i = 0; i < MOTOR_COUNT; i++)
+    {
+        T_Check("A low after trip", !T_Out(motors[i].a_port, motors[i].a_pin));
+        T_Check("B low after trip", !T_Out(motors[i].b_port, motors[i].b_pin));
+    }
+    brake();
+}
+#endif
+
+/* ----------------------------------------------------------------- runner */
+void Test_RunAll(void)
+{
+    t_pass = t_fail = 0U;
+    T_Print("\r\n===== TEST REGIME START =====\r\n");
+
+    T_Idle();
+    T_Direction();
+    T_Duty();
+    T_EncoderQuiet();
+    T_RunDirections();
+    T_SpeedSweep();
+#if TEST_RUN_WATCHDOG
+    T_Watchdog();
+#endif
+
+    sleep();   /* leave everything off */
+    T_Print("===== DONE: %lu passed, %lu failed =====\r\n",
+            (unsigned long)t_pass, (unsigned long)t_fail);
+}
+
+#endif /* RUN_TESTS */

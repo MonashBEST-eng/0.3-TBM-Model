@@ -3,6 +3,20 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="false"/>
 	<list key="searchhistory">
-		<item value="GPIO_NOPULL"/>
+		<item value="GPIO_InitStruct.Pin = HALL_1A_Pin|HALL_2A_Pin;"/>
+		<item value="brake"/>
+		<item value="go(40"/>
+		<item value="go("/>
+		<item value="go(\"/>
+		<item value="go"/>
+		<item value="main"/>
+		<item value="BENCH_TEST_ENABLED"/>
+		<item value="BenchTest_Service"/>
+		<item value="speed"/>
+		<item value="M1S"/>
+		<item value="pct"/>
+		<item value="PWM_MAX_PCT"/>
+		<item value="go&apos;"/>
+		<item value="while"/>
 	</list>
 </section>
