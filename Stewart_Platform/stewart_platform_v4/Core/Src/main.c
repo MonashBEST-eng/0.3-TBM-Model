@@ -214,35 +214,35 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
+	  /*
+	  move_all_generic(REVERSE);
+	  HAL_Delay(7000U);
+	  brake();
+	  HAL_Delay(500U);
+	  sleep();
+	  HAL_Delay(1000U);
+
+	  move_all_generic(GO);
+	  HAL_Delay(5000U);
+	  brake();
+	  HAL_Delay(500U);
+	  sleep();
+	  HAL_Delay(1000U);
+
+	  */
+
 	  //------------------- Printing Data (non-blocking, AIed this code) ----------------------
 	  uint32_t now = HAL_GetTick();
 
 	  if ((uint32_t)(now - last_uart_print_ms) >= 100U)
 	  {
 	      last_uart_print_ms = now;
-
-	      // Don't overwrite buf while the previous message is still being sent.
-	      if (uart_tx_busy == 0U)
-	      {
-	          int len = snprintf(buf, sizeof(buf),
-	                             "\rM1=%10lu  M2=%10lu   ",
-	                             (unsigned long)h_bridge[0].ticks,
-	                             (unsigned long)h_bridge[1].ticks);
-
-	          if (len > 0 && (size_t)len < sizeof(buf))
-	          {
-	              uart_tx_busy = 1U;
-
-	              if (HAL_UART_Transmit_IT(&huart2,
-	                                       (uint8_t *)buf,
-	                                       (uint16_t)len) != HAL_OK)
-	              {
-	                  uart_tx_busy = 0U;  // Transmit didn't start; try again next time.
-	              }
-	          }
-	      }
+	      printf("M1=%10lu  M2=%10lu\r\n",
+	             (unsigned long)h_bridge[0].ticks,
+	             (unsigned long)h_bridge[1].ticks);
 	  }
 
 	  // Changing how motors move off button press
@@ -274,6 +274,7 @@ int main(void)
 	              break;
 	      }
 	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -469,7 +470,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 3000;
+  sConfigOC.Pulse = 2000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
@@ -535,7 +536,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 3000;
+  sConfigOC.Pulse = 2000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -660,6 +661,14 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+int __io_putchar(int ch)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == H1A_Pin) {
