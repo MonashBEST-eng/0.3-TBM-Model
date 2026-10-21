@@ -29,7 +29,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-// --- Stewart Platform Motor State define ---
+// --- Stewart Platform Motor State typedef ---
 typedef enum{
 	SLEEP_STANDBY,
     FORWARD_STANDBY,
@@ -38,7 +38,7 @@ typedef enum{
     BACKWARD,
     BRAKE}
 stewart_state;
-// --- command direction define ---
+// --- command direction typedef ---
 typedef enum{
 	GO,
 	REVERSE,
@@ -54,12 +54,20 @@ typedef struct{
 	uint16_t GPIOPinB;
 
 	// for hall feedback
-	volatile uint32_t ticks;
+	volatile uint32_t current_ticks;
+	volatile uint32_t previous_ticks;
+	volatile uint32_t total_ticks;
 	// after  hall feedback
 	float position_mm;
 	uint16_t speed;
 	uint8_t direction;
 } motor;
+
+// Result output format for findmin
+typedef struct{
+	uint32_t idx;
+	uint32_t value;
+} minResult;
 
 /* USER CODE END PTD */
 
@@ -107,10 +115,13 @@ static motor h_bridge[ACTUATOR_COUNT] = {
 	    }
 };
 
+// Speeds array
+volatile uint32_t speeds[ACTUATOR_COUNT];
+
+
 //print uart data variables
-static char buf[80];
 static uint32_t last_uart_print_ms = 0;
-static volatile uint8_t uart_tx_busy = 0;
+
 
 /* USER CODE END PV */
 
@@ -126,6 +137,9 @@ static void MX_USART2_UART_Init(void);
 void move_all_generic(command_direction);
 void brake();
 void sleep();
+minResult simple_findmin(const volatile uint32_t arr[], uint32_t length);
+void update_speeds(motor system[]);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -163,6 +177,31 @@ void brake(){
 	}
 }
 
+minResult simple_findmin(const volatile uint32_t arr[], uint32_t length){
+	minResult min = {
+			.idx = 0,
+			.value = arr[0]
+	};
+
+	for(uint32_t i=1; i<length;i++){
+		if(arr[i]<min.value){
+			min.idx = i;
+			min.value = arr[i];
+		}
+	}
+	return min;
+}
+
+void update_speeds(motor system[]){
+	for (uint8_t i=0;i<ACTUATOR_COUNT;i++){
+		system[i].previous_ticks = system[i].current_ticks;
+		speeds[i] = system[i].current_ticks;
+		system[i].current_ticks = 0;
+
+	}
+
+
+}
 
 
 
@@ -214,38 +253,52 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  volatile minResult current_minSpeed;
+  //pre loop print
+
+  printf("STM started/reset \r\n"
+         "M1 total ticks=0  M2 total ticks=0");
+  printf("M1 ticks=0  M2 ticks=0\r\n"
+         "Min speed=0  Motor index=0\r\n"
+         "M1 total ticks=0  M2 total ticks=0");
+
+  fflush(stdout);
 
   while (1)
   {
-	  /*
-	  move_all_generic(REVERSE);
-	  HAL_Delay(7000U);
-	  brake();
-	  HAL_Delay(500U);
-	  sleep();
-	  HAL_Delay(1000U);
-
-	  move_all_generic(GO);
-	  HAL_Delay(5000U);
-	  brake();
-	  HAL_Delay(500U);
-	  sleep();
-	  HAL_Delay(1000U);
-
-	  */
-
-	  //------------------- Printing Data (non-blocking, AIed this code) ----------------------
+	  //------------------- Printing Data every 100ms (non-blocking, AIed this code) ----------------------
 	  uint32_t now = HAL_GetTick();
 
 	  if ((uint32_t)(now - last_uart_print_ms) >= 100U)
 	  {
+		  update_speeds(h_bridge);
+		  current_minSpeed = simple_findmin(speeds, 2);
+
+
 	      last_uart_print_ms = now;
-	      printf("M1=%10lu  M2=%10lu\r\n",
-	             (unsigned long)h_bridge[0].ticks,
-	             (unsigned long)h_bridge[1].ticks);
+	      printf("\033[3A"
+	             "\r\033[2K"
+	             "M1 ticks=%10lu  M2 ticks=%10lu\r\n"
+	             "\r\033[2K"
+	             "Min speed=%10lu  Motor index=%lu\r\n"
+	             "\r\033[2K"
+	             "M1 total ticks=%10lu  M2 total ticks=%10lu",
+	             (unsigned long)h_bridge[0].current_ticks,
+	             (unsigned long)h_bridge[1].current_ticks,
+	             (unsigned long)current_minSpeed.value,
+	             (unsigned long)current_minSpeed.idx,
+	             (unsigned long)h_bridge[0].total_ticks,
+	             (unsigned long)h_bridge[1].total_ticks);
+
+	      fflush(stdout);
 	  }
 
-	  // Changing how motors move off button press
+	  // -------------------- want to change this to not keep printing but update the same value on 1 print
+
+
+
+
+	  // Changing how motors move off button press for testing
 	  if (button_event)
 	  {
 	      button_event = 0U;
@@ -274,6 +327,8 @@ int main(void)
 	              break;
 	      }
 	  }
+
+
 
     /* USER CODE END WHILE */
 
@@ -672,16 +727,21 @@ int __io_putchar(int ch)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == H1A_Pin) {
-        h_bridge[0].ticks++;
+        h_bridge[0].current_ticks++;
+        h_bridge[0].total_ticks++;
     }
     if (GPIO_Pin == H1B_Pin) {
-    	h_bridge[0].ticks++;
+        h_bridge[0].current_ticks++;
+        h_bridge[0].total_ticks++;
+
     }
     if (GPIO_Pin == H2A_Pin) {
-    	h_bridge[1].ticks++;
+    	h_bridge[1].current_ticks++;
+    	h_bridge[1].total_ticks++;
     }
     if (GPIO_Pin == H2B_Pin) {
-    	h_bridge[1].ticks++;
+    	h_bridge[1].current_ticks++;
+    	h_bridge[1].total_ticks++;
     }
 }
 
