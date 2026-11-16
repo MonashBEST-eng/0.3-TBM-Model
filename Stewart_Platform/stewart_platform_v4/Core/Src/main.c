@@ -135,6 +135,7 @@ static void MX_TIM3_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void move_all_generic(command_direction);
+//void move_single_hall_quota(static motor system[], uint32_t idx, command_direction,uint32 hall_quota);
 void brake();
 void sleep();
 minResult simple_findmin(const volatile uint32_t arr[], uint32_t length);
@@ -160,7 +161,7 @@ void move_all_generic(command_direction direction){
 	}
 	HAL_TIM_Base_Start(&htim1);
 }
-
+//void move_single_hall_quota(static motor system[], uint32_t idx, command_direction,uint32 hall_quota){}
 void sleep(){
 	for (uint8_t i = 0; i < ACTUATOR_COUNT; i++){
 		motor *m = &h_bridge[i];
@@ -263,15 +264,18 @@ int main(void)
          "M1 total ticks=0  M2 total ticks=0");
 
   fflush(stdout);
+  printf("\033[2J\033[H");
+  fflush(stdout);
+  // move_all_generic(REVERSE);
 
   while (1)
   {
 	  //------------------- Printing Data every 100ms (non-blocking, AIed this code) ----------------------
 	  uint32_t now = HAL_GetTick();
 
-	  if ((uint32_t)(now - last_uart_print_ms) >= 100U)
+	  if ((uint32_t)(now - last_uart_print_ms) >= 500U)
 	  {
-		  update_speeds(h_bridge);
+		  //update_speeds(h_bridge);
 		  current_minSpeed = simple_findmin(speeds, 2);
 
 
@@ -282,7 +286,7 @@ int main(void)
 	             "\r\033[2K"
 	             "Min speed=%10lu  Motor index=%lu\r\n"
 	             "\r\033[2K"
-	             "M1 total ticks=%10lu  M2 total ticks=%10lu",
+	             "M1 total ticks=%10lu  M2 total ticks=%10lu \r\n",
 	             (unsigned long)h_bridge[0].current_ticks,
 	             (unsigned long)h_bridge[1].current_ticks,
 	             (unsigned long)current_minSpeed.value,
