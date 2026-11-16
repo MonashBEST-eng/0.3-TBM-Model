@@ -78,15 +78,10 @@ void Error_Handler(void);
 #define M2_b_GPIO_Port GPIOB
 #define M2_pwm_Pin GPIO_PIN_10
 #define M2_pwm_GPIO_Port GPIOB
-#define H1B_Pin GPIO_PIN_8
-#define H1B_GPIO_Port GPIOA
-#define H1B_EXTI_IRQn EXTI9_5_IRQn
-#define H2A_Pin GPIO_PIN_9
-#define H2A_GPIO_Port GPIOA
-#define H2A_EXTI_IRQn EXTI9_5_IRQn
-#define H2B_Pin GPIO_PIN_10
-#define H2B_GPIO_Port GPIOA
-#define H2B_EXTI_IRQn EXTI15_10_IRQn
+#define ENC2_A_Pin GPIO_PIN_6
+#define ENC2_A_GPIO_Port GPIOC
+#define ENC2_B_Pin GPIO_PIN_7
+#define ENC2_B_GPIO_Port GPIOC
 #define T_SWDIO_Pin GPIO_PIN_13
 #define T_SWDIO_GPIO_Port GPIOA
 #define T_SWCLK_Pin GPIO_PIN_14
@@ -95,9 +90,10 @@ void Error_Handler(void);
 #define T_SWO_GPIO_Port GPIOB
 #define M1_PWM_Pin GPIO_PIN_4
 #define M1_PWM_GPIO_Port GPIOB
-#define H1A_Pin GPIO_PIN_5
-#define H1A_GPIO_Port GPIOB
-#define H1A_EXTI_IRQn EXTI9_5_IRQn
+#define ENC1_A_Pin GPIO_PIN_6
+#define ENC1_A_GPIO_Port GPIOB
+#define ENC1_B_Pin GPIO_PIN_7
+#define ENC1_B_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

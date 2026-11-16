@@ -18,12 +18,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <stdio.h>
-#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,18 +44,20 @@ typedef enum{
 // ---  Motor structure define ---
 typedef struct{
 	// bare bones defines
-	TIM_HandleTypeDef *timer;
-	uint32_t channel;
+	TIM_HandleTypeDef *timer;        // PWM timer
+	uint32_t channel;                // PWM channel
 	GPIO_TypeDef *gpioportA;
 	uint16_t GPIOPinA;
 	GPIO_TypeDef *gpioportB;
 	uint16_t GPIOPinB;
 
-	// for hall feedback
-	volatile uint32_t current_ticks;
-	volatile uint32_t previous_ticks;
-	volatile uint32_t total_ticks;
-	// after  hall feedback
+	// encoder feedback (replaces hall EXTI counting)
+	TIM_HandleTypeDef *enc_timer;    // encoder timer (TIM4 / TIM8)
+	uint16_t enc_last;               // last raw counter value
+	int32_t position_ticks;          // signed position (+ extending)
+	int32_t speed_ticks;             // ticks since last speed update (signed)
+
+	// after encoder feedback
 	float position_mm;
 	uint16_t speed;
 	uint8_t direction;
@@ -74,6 +74,22 @@ typedef struct{
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define ACTUATOR_COUNT 2U
+
+// --- Timing ---
+#define CTRL_PERIOD_MS   10U    // encoder read + sync loop
+#define PRINT_PERIOD_MS  100U   // UART print + speed window
+
+// --- Sync controller (tune these) ---
+#define BASE_DUTY  2800         // nominal compare (ARR = 3399), headroom for the lagging motor
+#define DUTY_MIN    600         // don't let a motor stall
+#define DUTY_MAX   3399         // = timer period (100%)
+#define KP         1.5f         // duty counts per tick of position error
+
+// --- Encoder direction fix ---
+// If an actuator counts NEGATIVE while extending, set its entry to 1.
+// (Or set that timer's Channel 1 polarity to Falling in CubeMX and leave this 0.)
+#define ENC1_INVERT  0          // M1 / TIM4
+#define ENC2_INVERT  0          // M2 / TIM8
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,8 +104,11 @@ FDCAN_HandleTypeDef hfdcan1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim8;
 
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 // states/buttons
@@ -103,7 +122,8 @@ static motor h_bridge[ACTUATOR_COUNT] = {
 	        .gpioportA = M1_A_GPIO_Port,
 	        .GPIOPinA = M1_A_Pin,
 	        .gpioportB = M1_B_GPIO_Port,
-	        .GPIOPinB = M1_B_Pin
+	        .GPIOPinB = M1_B_Pin,
+	        .enc_timer = &htim4
 	    },
 	    {
 	        .timer = &htim3,
@@ -111,7 +131,8 @@ static motor h_bridge[ACTUATOR_COUNT] = {
 	        .gpioportA = M2_a_GPIO_Port,
 	        .GPIOPinA = M2_a_Pin,
 	        .gpioportB = M2_b_GPIO_Port,
-	        .GPIOPinB = M2_b_Pin
+	        .GPIOPinB = M2_b_Pin,
+	        .enc_timer = &htim8
 	    }
 };
 
@@ -122,24 +143,32 @@ volatile uint32_t speeds[ACTUATOR_COUNT];
 //print uart data variables
 static uint32_t last_uart_print_ms = 0;
 
+// latest sync error + duties (for printing / tuning)
+static int32_t sync_error = 0;
+static int32_t duty_cmd[ACTUATOR_COUNT] = {BASE_DUTY, BASE_DUTY};
+
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_TIM4_Init(void);
+static void MX_TIM8_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void move_all_generic(command_direction);
 void brake();
 void sleep();
 minResult simple_findmin(const volatile uint32_t arr[], uint32_t length);
-void update_speeds(motor system[]);
-
+static void update_encoders(void);
+static void sync_actuators(void);
+static int32_t clamp_i32(int32_t x, int32_t lo, int32_t hi);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -147,6 +176,9 @@ void update_speeds(motor system[]);
 void move_all_generic(command_direction direction){
 	for (uint8_t i = 0; i < ACTUATOR_COUNT; i++){
 		motor *m = &h_bridge[i];
+
+		// every move starts both motors at the same duty; sync adjusts from there
+		__HAL_TIM_SET_COMPARE(m->timer, m->channel, BASE_DUTY);
 
 		if(direction == GO){
 			    m->gpioportA->BSRR = (uint32_t)m->GPIOPinA;          // Set A
@@ -192,18 +224,45 @@ minResult simple_findmin(const volatile uint32_t arr[], uint32_t length){
 	return min;
 }
 
-void update_speeds(motor system[]){
-	for (uint8_t i=0;i<ACTUATOR_COUNT;i++){
-		system[i].previous_ticks = system[i].current_ticks;
-		speeds[i] = system[i].current_ticks;
-		system[i].current_ticks = 0;
+static void update_encoders(void){
+    for (uint8_t i = 0; i < ACTUATOR_COUNT; i++){
+        motor *m = &h_bridge[i];
+        uint16_t now = __HAL_TIM_GET_COUNTER(m->enc_timer);
+        int16_t delta = (int16_t)(now - m->enc_last);  // handles 16-bit wraparound
+        m->enc_last = now;
 
-	}
+        if ((i == 0 && ENC1_INVERT) || (i == 1 && ENC2_INVERT)){
+            delta = (int16_t)(-delta);
+        }
 
-
+        m->position_ticks += delta;
+        m->speed_ticks    += delta;
+    }
 }
 
+static int32_t clamp_i32(int32_t x, int32_t lo, int32_t hi){
+	if (x < lo) return lo;
+	if (x > hi) return hi;
+	return x;
+}
 
+// Position sync: slow the actuator that's ahead, speed up the one behind
+static void sync_actuators(void){
+	if (motor_state != FORWARD && motor_state != BACKWARD) return;
+
+	int32_t err = h_bridge[0].position_ticks - h_bridge[1].position_ticks;  // >0 = M1 ahead extending
+	if (motor_state == BACKWARD) err = -err;   // retracting: "ahead" = smaller position
+
+	int32_t d0 = clamp_i32(BASE_DUTY - KP * err, DUTY_MIN, DUTY_MAX);
+	int32_t d1 = clamp_i32(BASE_DUTY + KP * err, DUTY_MIN, DUTY_MAX);
+
+	sync_error  = err;
+	duty_cmd[0] = d0;
+	duty_cmd[1] = d1;
+
+	__HAL_TIM_SET_COMPARE(h_bridge[0].timer, h_bridge[0].channel, (uint32_t)d0);
+	__HAL_TIM_SET_COMPARE(h_bridge[1].timer, h_bridge[1].channel, (uint32_t)d1);
+}
 
 /* USER CODE END 0 */
 
@@ -236,13 +295,19 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_FDCAN1_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
+  MX_TIM8_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
+  HAL_TIM_Encoder_Start(&htim8, TIM_CHANNEL_ALL);
+  for (uint8_t i = 0; i < ACTUATOR_COUNT; i++)
+      h_bridge[i].enc_last = __HAL_TIM_GET_COUNTER(h_bridge[i].enc_timer);
   /* USER CODE END 2 */
 
   /* Initialize leds */
@@ -253,52 +318,68 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  volatile minResult current_minSpeed;
-  //pre loop print
+  minResult current_minSpeed = {0};
+  uint32_t last_enc_ms = 0;
 
-  printf("STM started/reset \r\n"
-         "M1 total ticks=0  M2 total ticks=0");
-  printf("M1 ticks=0  M2 ticks=0\r\n"
+  // Banner + 4 placeholder lines. Last line has no \r\n so the cursor sits on it.
+  printf("\r\nSTM started/reset\r\n"
+         "M1 speed=0  M2 speed=0\r\n"
          "Min speed=0  Motor index=0\r\n"
-         "M1 total ticks=0  M2 total ticks=0");
-
+         "M1 pos=0  M2 pos=0\r\n"
+         "err=0  M1 duty=0  M2 duty=0");
   fflush(stdout);
 
   while (1)
   {
-	  //------------------- Printing Data every 100ms (non-blocking, AIed this code) ----------------------
 	  uint32_t now = HAL_GetTick();
 
-	  if ((uint32_t)(now - last_uart_print_ms) >= 100U)
+	  //------------------- Read encoders + sync every 10 ms ----------------------
+	  if ((uint32_t)(now - last_enc_ms) >= CTRL_PERIOD_MS)
 	  {
-		  update_speeds(h_bridge);
-		  current_minSpeed = simple_findmin(speeds, 2);
-
-
-	      last_uart_print_ms = now;
-	      printf("\033[3A"
-	             "\r\033[2K"
-	             "M1 ticks=%10lu  M2 ticks=%10lu\r\n"
-	             "\r\033[2K"
-	             "Min speed=%10lu  Motor index=%lu\r\n"
-	             "\r\033[2K"
-	             "M1 total ticks=%10lu  M2 total ticks=%10lu",
-	             (unsigned long)h_bridge[0].current_ticks,
-	             (unsigned long)h_bridge[1].current_ticks,
-	             (unsigned long)current_minSpeed.value,
-	             (unsigned long)current_minSpeed.idx,
-	             (unsigned long)h_bridge[0].total_ticks,
-	             (unsigned long)h_bridge[1].total_ticks);
-
-	      fflush(stdout);
+		  last_enc_ms = now;
+		  update_encoders();
+		  sync_actuators();
 	  }
 
-	  // -------------------- want to change this to not keep printing but update the same value on 1 print
+	  //------------------- Print every 100 ms (updates the same 4 lines) ----------------------
+	  if ((uint32_t)(now - last_uart_print_ms) >= PRINT_PERIOD_MS)
+	  {
+		  last_uart_print_ms = now;
 
+		  // grab speed (ticks per 100 ms, signed) and reset for the next window
+		  int32_t s0 = h_bridge[0].speed_ticks;
+		  int32_t s1 = h_bridge[1].speed_ticks;
+		  h_bridge[0].speed_ticks = 0;
+		  h_bridge[1].speed_ticks = 0;
 
+		  // findmin compares magnitudes, so it works extending or retracting
+		  speeds[0] = (uint32_t)((s0 < 0) ? -s0 : s0);
+		  speeds[1] = (uint32_t)((s1 < 0) ? -s1 : s1);
+		  current_minSpeed = simple_findmin(speeds, ACTUATOR_COUNT);
 
+		  // cursor is on the last line -> go up 3, rewrite all 4 lines
+		  printf("\033[3A"
+		         "\r\033[2K"
+		         "M1 speed=%6ld  M2 speed=%6ld\r\n"
+		         "\r\033[2K"
+		         "Min speed=%6lu  Motor index=%lu\r\n"
+		         "\r\033[2K"
+		         "M1 pos=%8ld  M2 pos=%8ld\r\n"
+		         "\r\033[2K"
+		         "err=%6ld  M1 duty=%4ld  M2 duty=%4ld",
+		         (long)s0,
+		         (long)s1,
+		         (unsigned long)current_minSpeed.value,
+		         (unsigned long)current_minSpeed.idx,
+		         (long)h_bridge[0].position_ticks,
+		         (long)h_bridge[1].position_ticks,
+		         (long)sync_error,
+		         (long)duty_cmd[0],
+		         (long)duty_cmd[1]);
+		  fflush(stdout);
+	  }
 
-	  // Changing how motors move off button press for testing
+	  //------------------- Button: step through motor states ----------------------
 	  if (button_event)
 	  {
 	      button_event = 0U;
@@ -327,8 +408,6 @@ int main(void)
 	              break;
 	      }
 	  }
-
-
 
     /* USER CODE END WHILE */
 
@@ -525,7 +604,7 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 2000;
+  sConfigOC.Pulse = 3000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
@@ -591,7 +670,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 2000;
+  sConfigOC.Pulse = 3000;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -602,6 +681,106 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 2 */
   HAL_TIM_MspPostInit(&htim3);
+
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 0;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 65535;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 6;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 6;
+  if (HAL_TIM_Encoder_Init(&htim4, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
+  * @brief TIM8 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM8_Init(void)
+{
+
+  /* USER CODE BEGIN TIM8_Init 0 */
+
+  /* USER CODE END TIM8_Init 0 */
+
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM8_Init 1 */
+
+  /* USER CODE END TIM8_Init 1 */
+  htim8.Instance = TIM8;
+  htim8.Init.Prescaler = 0;
+  htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim8.Init.Period = 65535;
+  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim8.Init.RepetitionCounter = 0;
+  htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_FALLING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 6;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 6;
+  if (HAL_TIM_Encoder_Init(&htim8, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim8, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM8_Init 2 */
+
+  /* USER CODE END TIM8_Init 2 */
 
 }
 
@@ -654,6 +833,23 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMAMUX1_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -691,25 +887,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(M2_b_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : H1B_Pin H2A_Pin H2B_Pin */
-  GPIO_InitStruct.Pin = H1B_Pin|H2A_Pin|H2B_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : H1A_Pin */
-  GPIO_InitStruct.Pin = H1A_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(H1A_GPIO_Port, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
@@ -723,27 +900,6 @@ int __io_putchar(int ch)
     return ch;
 }
 
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if (GPIO_Pin == H1A_Pin) {
-        h_bridge[0].current_ticks++;
-        h_bridge[0].total_ticks++;
-    }
-    if (GPIO_Pin == H1B_Pin) {
-        h_bridge[0].current_ticks++;
-        h_bridge[0].total_ticks++;
-
-    }
-    if (GPIO_Pin == H2A_Pin) {
-    	h_bridge[1].current_ticks++;
-    	h_bridge[1].total_ticks++;
-    }
-    if (GPIO_Pin == H2B_Pin) {
-    	h_bridge[1].current_ticks++;
-    	h_bridge[1].total_ticks++;
-    }
-}
 
 void BSP_PB_Callback(Button_TypeDef Button)
 {
