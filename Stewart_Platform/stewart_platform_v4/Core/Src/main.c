@@ -74,6 +74,22 @@ typedef struct{
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define ACTUATOR_COUNT 2U
+
+// --- Timing ---
+#define CTRL_PERIOD_MS   10U    // encoder read + sync loop
+#define PRINT_PERIOD_MS  100U   // UART print + speed window
+
+// --- Sync controller (tune these) ---
+#define BASE_DUTY  2800         // nominal compare (ARR = 3399), headroom for the lagging motor
+#define DUTY_MIN    600         // don't let a motor stall
+#define DUTY_MAX   3399         // = timer period (100%)
+#define KP         1.5f         // duty counts per tick of position error
+
+// --- Encoder direction fix ---
+// If an actuator counts NEGATIVE while extending, set its entry to 1.
+// (Or set that timer's Channel 1 polarity to Falling in CubeMX and leave this 0.)
+#define ENC1_INVERT  0          // M1 / TIM4
+#define ENC2_INVERT  0          // M2 / TIM8
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -127,6 +143,10 @@ volatile uint32_t speeds[ACTUATOR_COUNT];
 //print uart data variables
 static uint32_t last_uart_print_ms = 0;
 
+// latest sync error + duties (for printing / tuning)
+static int32_t sync_error = 0;
+static int32_t duty_cmd[ACTUATOR_COUNT] = {BASE_DUTY, BASE_DUTY};
+
 
 /* USER CODE END PV */
 
@@ -147,6 +167,8 @@ void brake();
 void sleep();
 minResult simple_findmin(const volatile uint32_t arr[], uint32_t length);
 static void update_encoders(void);
+static void sync_actuators(void);
+static int32_t clamp_i32(int32_t x, int32_t lo, int32_t hi);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -154,6 +176,9 @@ static void update_encoders(void);
 void move_all_generic(command_direction direction){
 	for (uint8_t i = 0; i < ACTUATOR_COUNT; i++){
 		motor *m = &h_bridge[i];
+
+		// every move starts both motors at the same duty; sync adjusts from there
+		__HAL_TIM_SET_COMPARE(m->timer, m->channel, BASE_DUTY);
 
 		if(direction == GO){
 			    m->gpioportA->BSRR = (uint32_t)m->GPIOPinA;          // Set A
@@ -205,9 +230,38 @@ static void update_encoders(void){
         uint16_t now = __HAL_TIM_GET_COUNTER(m->enc_timer);
         int16_t delta = (int16_t)(now - m->enc_last);  // handles 16-bit wraparound
         m->enc_last = now;
+
+        if ((i == 0 && ENC1_INVERT) || (i == 1 && ENC2_INVERT)){
+            delta = (int16_t)(-delta);
+        }
+
         m->position_ticks += delta;
         m->speed_ticks    += delta;
     }
+}
+
+static int32_t clamp_i32(int32_t x, int32_t lo, int32_t hi){
+	if (x < lo) return lo;
+	if (x > hi) return hi;
+	return x;
+}
+
+// Position sync: slow the actuator that's ahead, speed up the one behind
+static void sync_actuators(void){
+	if (motor_state != FORWARD && motor_state != BACKWARD) return;
+
+	int32_t err = h_bridge[0].position_ticks - h_bridge[1].position_ticks;  // >0 = M1 ahead extending
+	if (motor_state == BACKWARD) err = -err;   // retracting: "ahead" = smaller position
+
+	int32_t d0 = clamp_i32(BASE_DUTY - KP * err, DUTY_MIN, DUTY_MAX);
+	int32_t d1 = clamp_i32(BASE_DUTY + KP * err, DUTY_MIN, DUTY_MAX);
+
+	sync_error  = err;
+	duty_cmd[0] = d0;
+	duty_cmd[1] = d1;
+
+	__HAL_TIM_SET_COMPARE(h_bridge[0].timer, h_bridge[0].channel, (uint32_t)d0);
+	__HAL_TIM_SET_COMPARE(h_bridge[1].timer, h_bridge[1].channel, (uint32_t)d1);
 }
 
 /* USER CODE END 0 */
@@ -267,26 +321,28 @@ int main(void)
   minResult current_minSpeed = {0};
   uint32_t last_enc_ms = 0;
 
-  // Banner + 3 placeholder lines. Last line has no \r\n so the cursor sits on it.
-  printf("STM started/reset\r\n"
+  // Banner + 4 placeholder lines. Last line has no \r\n so the cursor sits on it.
+  printf("\r\nSTM started/reset\r\n"
          "M1 speed=0  M2 speed=0\r\n"
          "Min speed=0  Motor index=0\r\n"
-         "M1 pos=0  M2 pos=0");
+         "M1 pos=0  M2 pos=0\r\n"
+         "err=0  M1 duty=0  M2 duty=0");
   fflush(stdout);
 
   while (1)
   {
 	  uint32_t now = HAL_GetTick();
 
-	  //------------------- Read encoders every 10 ms ----------------------
-	  if ((uint32_t)(now - last_enc_ms) >= 10U)
+	  //------------------- Read encoders + sync every 10 ms ----------------------
+	  if ((uint32_t)(now - last_enc_ms) >= CTRL_PERIOD_MS)
 	  {
 		  last_enc_ms = now;
 		  update_encoders();
+		  sync_actuators();
 	  }
 
-	  //------------------- Print every 100 ms (updates the same 3 lines) ----------------------
-	  if ((uint32_t)(now - last_uart_print_ms) >= 100U)
+	  //------------------- Print every 100 ms (updates the same 4 lines) ----------------------
+	  if ((uint32_t)(now - last_uart_print_ms) >= PRINT_PERIOD_MS)
 	  {
 		  last_uart_print_ms = now;
 
@@ -301,20 +357,25 @@ int main(void)
 		  speeds[1] = (uint32_t)((s1 < 0) ? -s1 : s1);
 		  current_minSpeed = simple_findmin(speeds, ACTUATOR_COUNT);
 
-		  // cursor is on the last line -> go up 2, rewrite all 3 lines
-		  printf("\033[2A"
+		  // cursor is on the last line -> go up 3, rewrite all 4 lines
+		  printf("\033[3A"
 		         "\r\033[2K"
 		         "M1 speed=%6ld  M2 speed=%6ld\r\n"
 		         "\r\033[2K"
 		         "Min speed=%6lu  Motor index=%lu\r\n"
 		         "\r\033[2K"
-		         "M1 pos=%8ld  M2 pos=%8ld",
+		         "M1 pos=%8ld  M2 pos=%8ld\r\n"
+		         "\r\033[2K"
+		         "err=%6ld  M1 duty=%4ld  M2 duty=%4ld",
 		         (long)s0,
 		         (long)s1,
 		         (unsigned long)current_minSpeed.value,
 		         (unsigned long)current_minSpeed.idx,
 		         (long)h_bridge[0].position_ticks,
-		         (long)h_bridge[1].position_ticks);
+		         (long)h_bridge[1].position_ticks,
+		         (long)sync_error,
+		         (long)duty_cmd[0],
+		         (long)duty_cmd[1]);
 		  fflush(stdout);
 	  }
 
@@ -698,7 +759,7 @@ static void MX_TIM8_Init(void)
   htim8.Init.RepetitionCounter = 0;
   htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
-  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_FALLING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
   sConfig.IC1Filter = 6;
