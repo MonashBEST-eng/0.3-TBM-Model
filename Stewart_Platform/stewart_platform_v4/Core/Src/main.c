@@ -57,6 +57,8 @@ typedef struct{
 	volatile uint32_t current_ticks;
 	volatile uint32_t previous_ticks;
 	volatile uint32_t total_ticks;
+	volatile int32_t position_ticks;   // signed position: counts up extending, down retracting
+	volatile int8_t dir_sign;          // +1 = extending (GO), -1 = retracting (REVERSE)
 	// after  hall feedback
 	float position_mm;
 	uint16_t speed;
@@ -147,6 +149,9 @@ void update_speeds(motor system[]);
 void move_all_generic(command_direction direction){
 	for (uint8_t i = 0; i < ACTUATOR_COUNT; i++){
 		motor *m = &h_bridge[i];
+
+		// tell the hall ISR which way to count position
+		m->dir_sign = (direction == GO) ? 1 : -1;
 
 		if(direction == GO){
 			    m->gpioportA->BSRR = (uint32_t)m->GPIOPinA;          // Set A
@@ -282,13 +287,15 @@ int main(void)
 	             "\r\033[2K"
 	             "Min speed=%10lu  Motor index=%lu\r\n"
 	             "\r\033[2K"
-	             "M1 total ticks=%10lu  M2 total ticks=%10lu",
+	             "M1 total ticks=%10lu  M2 total ticks=%10lu  M1 pos=%8ld  M2 pos=%8ld",
 	             (unsigned long)h_bridge[0].current_ticks,
 	             (unsigned long)h_bridge[1].current_ticks,
 	             (unsigned long)current_minSpeed.value,
 	             (unsigned long)current_minSpeed.idx,
 	             (unsigned long)h_bridge[0].total_ticks,
-	             (unsigned long)h_bridge[1].total_ticks);
+	             (unsigned long)h_bridge[1].total_ticks,
+	             (long)h_bridge[0].position_ticks,
+	             (long)h_bridge[1].position_ticks);
 
 	      fflush(stdout);
 	  }
@@ -729,19 +736,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if (GPIO_Pin == H1A_Pin) {
         h_bridge[0].current_ticks++;
         h_bridge[0].total_ticks++;
+        h_bridge[0].position_ticks += h_bridge[0].dir_sign;
     }
     if (GPIO_Pin == H1B_Pin) {
         h_bridge[0].current_ticks++;
         h_bridge[0].total_ticks++;
-
+        h_bridge[0].position_ticks += h_bridge[0].dir_sign;
     }
     if (GPIO_Pin == H2A_Pin) {
     	h_bridge[1].current_ticks++;
     	h_bridge[1].total_ticks++;
+    	h_bridge[1].position_ticks += h_bridge[1].dir_sign;
     }
     if (GPIO_Pin == H2B_Pin) {
     	h_bridge[1].current_ticks++;
     	h_bridge[1].total_ticks++;
+    	h_bridge[1].position_ticks += h_bridge[1].dir_sign;
     }
 }
 
