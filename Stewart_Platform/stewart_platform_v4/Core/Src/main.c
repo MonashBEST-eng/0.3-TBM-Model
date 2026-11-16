@@ -34,7 +34,8 @@ typedef enum{
     BACKWARD_STANDBY,
     FORWARD,
     BACKWARD,
-    BRAKE}
+    BRAKE,
+    HOMING}          // open-loop retract to end stops (used to recover from a fault)
 stewart_state;
 // --- command direction typedef ---
 typedef enum{
@@ -82,14 +83,24 @@ typedef struct{
 // --- Sync controller (tune these) ---
 #define BASE_DUTY  2800         // nominal compare (ARR = 3399), headroom for the lagging motor
 #define DUTY_MIN    600         // don't let a motor stall
-#define DUTY_MAX   3399         // = timer period (100%)
-#define KP         1.5f         // duty counts per tick of position error
+#define DUTY_MAX   3230         // ~95%: leaves PWM off-time for the driver's high side
+#define KP          1.5f         // duty counts per tick of position error
+#define KI         0.01f         // duty counts added per tick of error, every 10 ms
+#define KD         0.0f         // leave at 0 to start (encoder ticks make D noisy)
+#define I_LIMIT  800.0f         // max duty the I term can contribute (anti-windup)
+
+// --- Safety ---
+#define ERR_LIMIT   10000       // ticks: if the actuators get this far apart, stop both
+
+// --- Encoder <-> motor mapping (match whatever you found works) ---
+// Each motor must read the encoder on ITS OWN actuator.
+#define M1_ENC_TIMER  htim8     // encoder on the actuator driven by TIM2 CH3
+#define M2_ENC_TIMER  htim4     // encoder on the actuator driven by TIM3 CH1
 
 // --- Encoder direction fix ---
 // If an actuator counts NEGATIVE while extending, set its entry to 1.
-// (Or set that timer's Channel 1 polarity to Falling in CubeMX and leave this 0.)
-#define ENC1_INVERT  0          // M1 / TIM4
-#define ENC2_INVERT  0          // M2 / TIM8
+#define ENC1_INVERT  0          // M1
+#define ENC2_INVERT  0          // M2 (TIM4 counts backwards)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -116,23 +127,23 @@ static stewart_state motor_state = SLEEP_STANDBY;
 static volatile uint8_t button_event = 0U;
 //motors
 static motor h_bridge[ACTUATOR_COUNT] = {
-		{
-	        .timer = &htim2,
-	        .channel = TIM_CHANNEL_3,
+		{   // M1
+	        .timer = &htim3,              // PB4  = M1_PWM
+	        .channel = TIM_CHANNEL_1,
 	        .gpioportA = M1_A_GPIO_Port,
 	        .GPIOPinA = M1_A_Pin,
 	        .gpioportB = M1_B_GPIO_Port,
 	        .GPIOPinB = M1_B_Pin,
-	        .enc_timer = &htim4
+	        .enc_timer = &M1_ENC_TIMER
 	    },
-	    {
-	        .timer = &htim3,
-	        .channel = TIM_CHANNEL_1,
+	    {   // M2
+	        .timer = &htim2,              // PB10 = M2_pwm
+	        .channel = TIM_CHANNEL_3,
 	        .gpioportA = M2_a_GPIO_Port,
 	        .GPIOPinA = M2_a_Pin,
 	        .gpioportB = M2_b_GPIO_Port,
 	        .GPIOPinB = M2_b_Pin,
-	        .enc_timer = &htim8
+	        .enc_timer = &M2_ENC_TIMER
 	    }
 };
 
@@ -146,6 +157,11 @@ static uint32_t last_uart_print_ms = 0;
 // latest sync error + duties (for printing / tuning)
 static int32_t sync_error = 0;
 static int32_t duty_cmd[ACTUATOR_COUNT] = {BASE_DUTY, BASE_DUTY};
+
+// PID state
+static float   i_acc    = 0.0f;     // integral term, in duty counts
+static int32_t err_prev = 0;
+static uint8_t fault    = 0U;       // 1 = stopped because actuators got too far apart
 
 
 /* USER CODE END PV */
@@ -174,6 +190,10 @@ static int32_t clamp_i32(int32_t x, int32_t lo, int32_t hi);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 void move_all_generic(command_direction direction){
+	// fresh PID state each move (err sign flips between extend and retract)
+	i_acc = 0.0f;
+	err_prev = 0;
+
 	for (uint8_t i = 0; i < ACTUATOR_COUNT; i++){
 		motor *m = &h_bridge[i];
 
@@ -247,14 +267,48 @@ static int32_t clamp_i32(int32_t x, int32_t lo, int32_t hi){
 }
 
 // Position sync: slow the actuator that's ahead, speed up the one behind
+// Position sync: slow the actuator that's ahead, speed up the one behind (PID + anti-windup)
 static void sync_actuators(void){
 	if (motor_state != FORWARD && motor_state != BACKWARD) return;
 
-	int32_t err = h_bridge[0].position_ticks - h_bridge[1].position_ticks;  // >0 = M1 ahead extending
-	if (motor_state == BACKWARD) err = -err;   // retracting: "ahead" = smaller position
+	int32_t raw = h_bridge[0].position_ticks - h_bridge[1].position_ticks;  // >0 = M1 ahead extending
 
-	int32_t d0 = clamp_i32(BASE_DUTY - KP * err, DUTY_MIN, DUTY_MAX);
-	int32_t d1 = clamp_i32(BASE_DUTY + KP * err, DUTY_MIN, DUTY_MAX);
+	// Safety: actuators too far apart -> stop both
+	if (raw > ERR_LIMIT || raw < -ERR_LIMIT){
+		sleep();
+		motor_state = SLEEP_STANDBY;
+		fault = 1U;
+		return;
+	}
+
+	int32_t err = (motor_state == BACKWARD) ? -raw : raw;   // retracting: "ahead" = smaller position
+
+	// P and D
+	float p_term = KP * (float)err;
+	float d_term = KD * (float)(err - err_prev);
+	err_prev = err;
+
+	// Tentative integral (hard cap kept as a backstop)
+	float i_new = i_acc + KI * (float)err;
+	if (i_new >  I_LIMIT) i_new =  I_LIMIT;
+	if (i_new < -I_LIMIT) i_new = -I_LIMIT;
+
+	// Would this output saturate either motor?
+	int32_t u_try  = (int32_t)(p_term + i_new + d_term);
+	int32_t d0_try = BASE_DUTY - u_try;
+	int32_t d1_try = BASE_DUTY + u_try;
+	uint8_t sat_pos = (d0_try < DUTY_MIN) || (d1_try > DUTY_MAX);   // pushing "slow M1 / speed M2" too hard
+	uint8_t sat_neg = (d0_try > DUTY_MAX) || (d1_try < DUTY_MIN);   // pushing "speed M1 / slow M2" too hard
+
+	// Anti-windup (conditional integration): only accept the new integral
+	// if it doesn't drive the output further into saturation
+	if (!((sat_pos && err > 0) || (sat_neg && err < 0))){
+		i_acc = i_new;
+	}
+
+	int32_t u  = (int32_t)(p_term + i_acc + d_term);
+	int32_t d0 = clamp_i32(BASE_DUTY - u, DUTY_MIN, DUTY_MAX);   // slow the leader
+	int32_t d1 = clamp_i32(BASE_DUTY + u, DUTY_MIN, DUTY_MAX);   // speed up the lagger
 
 	sync_error  = err;
 	duty_cmd[0] = d0;
@@ -326,7 +380,7 @@ int main(void)
          "M1 speed=0  M2 speed=0\r\n"
          "Min speed=0  Motor index=0\r\n"
          "M1 pos=0  M2 pos=0\r\n"
-         "err=0  M1 duty=0  M2 duty=0");
+         "err=0  I=0  M1 duty=0  M2 duty=0");
   fflush(stdout);
 
   while (1)
@@ -366,7 +420,7 @@ int main(void)
 		         "\r\033[2K"
 		         "M1 pos=%8ld  M2 pos=%8ld\r\n"
 		         "\r\033[2K"
-		         "err=%6ld  M1 duty=%4ld  M2 duty=%4ld",
+		         "err=%6ld  I=%5ld  M1 duty=%4ld  M2 duty=%4ld  %s",
 		         (long)s0,
 		         (long)s1,
 		         (unsigned long)current_minSpeed.value,
@@ -374,8 +428,11 @@ int main(void)
 		         (long)h_bridge[0].position_ticks,
 		         (long)h_bridge[1].position_ticks,
 		         (long)sync_error,
+		         (long)i_acc,
 		         (long)duty_cmd[0],
-		         (long)duty_cmd[1]);
+		         (long)duty_cmd[1],
+		         (motor_state == HOMING) ? "HOMING (press when both retracted)" :
+		         fault ? "FAULT: press to home" : "");
 		  fflush(stdout);
 	  }
 
@@ -384,7 +441,22 @@ int main(void)
 	  {
 	      button_event = 0U;
 
-	      switch (motor_state)
+	      if (fault && motor_state == SLEEP_STANDBY)
+	      {
+	          // after a fault: retract both open-loop until they sit on their end stops
+	          motor_state = HOMING;
+	          move_all_generic(REVERSE);
+	      }
+	      else if (motor_state == HOMING)
+	      {
+	          // both fully retracted: stop and call this position zero
+	          sleep();
+	          h_bridge[0].position_ticks = 0;
+	          h_bridge[1].position_ticks = 0;
+	          fault = 0U;
+	          motor_state = SLEEP_STANDBY;
+	      }
+	      else switch (motor_state)
 	      {
 	          case SLEEP_STANDBY:
 	              motor_state = FORWARD;
