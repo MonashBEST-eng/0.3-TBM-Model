@@ -1,11 +1,11 @@
 from wsdiscovery.discovery import ThreadedWSDiscovery as WSDiscovery
-
+ 
 wsd = WSDiscovery()
 wsd.start()
-
+ 
 try:
     services = wsd.searchServices()
-
+ 
     if not services:
         print("No ONVIF devices discovered.")
     else:
