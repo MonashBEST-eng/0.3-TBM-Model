@@ -1,0 +1,44 @@
+[project]
+name = "tbm-model"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "numpy==2.5.5",
+    "opencv-python==5.1.0.95",
+    "openpyxl==3.1.5",
+    "paho-mqtt==2.1.0",
+    "pillow==12.3.0",
+    "pyserial==3.5",
+    "python-can==4.6.1",
+]
+
+[dependency-groups]
+camera-discovery = [
+    "onvif-zeep>=0.2.12",
+    "wsdiscovery>=2.1.2",
+]
+dev = [
+    "pytest==9.2.0",
+]
+odrive-tools = [
+    "odrive>=0.6.11.post1",
+]
+
+[tool.uv]
+# Plain `uv sync` / `uv run` installs the ground-station runtime only.
+# Developer and field tools are opt-in via --group.
+default-groups = []
+# Pin indirect dependencies too: python-can's to the original GUI venv's
+# versions, and openpyxl's to the version locked today.
+constraint-dependencies = [
+    "et-xmlfile==2.0.0",
+    "packaging==26.3",
+    "typing-extensions==4.16.0",
+    "wrapt==1.17.3",
+]
+
+[tool.pytest.ini_options]
+# Look for tests only in the GUI's tests folder, and make its src/ importable
+# (import GUI_menus.dashboard_panel etc. work the same as when the GUI runs).
+testpaths = ["Control_GUI/GUI_V3_2/tests"]
+pythonpath = ["Control_GUI/GUI_V3_2/src"]

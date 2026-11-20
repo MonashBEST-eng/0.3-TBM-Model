@@ -1,0 +1,8 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# ---- Ground station runtime logs (recreated each run) ----
+**/outputs/system_log*.txt
