@@ -8,42 +8,54 @@ from getpass import getpass
 from urllib.parse import quote
  
 # ---------------- CONFIGURATION ----------------
+# Default camera addresses. These are only defaults: the ground station
+# can pass its own (e.g. from settings) into build_cameras() without
+# editing this file.
  
 DVR_IP = "192.168.1.10"
 POE_IP = "192.168.1.172"
  
-DVR_USER = input("DVR username [kafa]: ") or "kafa"
-DVR_PASS = getpass("DVR password: ")
- 
-POE_USER = input("PoE username [admin]: ") or "admin"
-POE_PASS = getpass("PoE password: ")
- 
-def rtsp_url(ip, username, password, path):
+def rtsp_url(ip, username, password, path, port=554):
     user = quote(username, safe="")
     pwd = quote(password, safe="")
-    return f"rtsp://{user}:{pwd}@{ip}:554{path}"
+    return f"rtsp://{user}:{pwd}@{ip}:{port}{path}"
  
-CAMERAS = {
-    "Internal Camera 1": rtsp_url(
-        DVR_IP, DVR_USER, DVR_PASS,
-        "/Streaming/Channels/101"
-    ),
-    "Internal Camera 2": rtsp_url(
-        DVR_IP, DVR_USER, DVR_PASS,
-        "/cam/realmonitor?channel=2&subtype=0"
-    ),
-    "External PoE Camera": rtsp_url(
-        POE_IP, POE_USER, POE_PASS,
-        "/stream1"
-    )
-}
+def build_cameras(dvr_user, dvr_pass, poe_user, poe_pass,
+                  dvr_ip=DVR_IP, poe_ip=POE_IP):
+    """Return {display name: RTSP URL} for all three cameras.
+ 
+    Credentials (and optionally IPs) are injected by the caller rather
+    than stored in this module: the standalone viewer prompts for them
+    in main(), and the ground station supplies its own when it builds
+    its CameraStream objects."""
+    return {
+        "Internal Camera 1": rtsp_url(
+            dvr_ip, dvr_user, dvr_pass,
+            "/Streaming/Channels/101"
+        ),
+        "Internal Camera 2": rtsp_url(
+            dvr_ip, dvr_user, dvr_pass,
+            "/cam/realmonitor?channel=2&subtype=0"
+        ),
+        "External PoE Camera": rtsp_url(
+            poe_ip, poe_user, poe_pass,
+            "/stream1"
+        )
+    }
  
 # ---------------- CAMERA STREAM ----------------
  
 class CameraStream:
-    def __init__(self, name, url):
+    def __init__(self, name, url, on_status=print):
+        """on_status is called with a short text message whenever the
+        stream connects, fails or reconnects. Defaults to print() for the
+        standalone viewer. NOTE: it is called from this stream's
+        background thread, so a GUI must not touch Tk widgets inside it -
+        push onto a queue (e.g. msg_queue) and update widgets from the
+        Tk main thread instead."""
         self.name = name
         self.url = url
+        self._on_status = on_status
         self.frame = None
         self.lock = threading.Lock()
         self.running = True
@@ -62,14 +74,14 @@ class CameraStream:
             )
  
             if not cap.isOpened():
-                print(f"{self.name}: connection failed")
+                self._on_status(f"{self.name}: connection failed")
                 cap.release()
                 self.connected = False
                 time.sleep(2)
                 continue
  
             self.connected = True
-            print(f"{self.name}: connected")
+            self._on_status(f"{self.name}: connected")
  
             while self.running:
                 ret, frame = cap.read()
@@ -87,7 +99,7 @@ class CameraStream:
                 self.frame = None
  
             if self.running:
-                print(f"{self.name}: reconnecting...")
+                self._on_status(f"{self.name}: reconnecting...")
                 time.sleep(1)
  
     def read(self):
@@ -128,49 +140,67 @@ def make_panel(name, frame, connected):
  
     return panel
  
-streams = [
-    CameraStream(name, url)
-    for name, url in CAMERAS.items()
-]
+# ---------------- STANDALONE VIEWER ----------------
+# Only runs when this file is executed directly (python three_cameras.py).
+# Importing this module defines rtsp_url / build_cameras / CameraStream /
+# make_panel only - no prompts, no connections, no display loop.
  
-import numpy as np
+def main():
+    import numpy as np
  
-selected = 0
+    dvr_user = input("DVR username [kafa]: ") or "kafa"
+    dvr_pass = getpass("DVR password: ")
  
-try:
-    while True:
-        panels = [
-            make_panel(
-                stream.name,
-                stream.read(),
-                stream.connected
-            )
-            for stream in streams
-        ]
+    poe_user = input("PoE username [admin]: ") or "admin"
+    poe_pass = getpass("PoE password: ")
  
-        if selected == 0:
-            # Three feeds in one horizontal dashboard
-            dashboard = np.hstack(panels)
-        else:
-            # Enlarge the selected camera
-            dashboard = cv2.resize(
-                panels[selected - 1],
-                (1280, 720)
-            )
+    cameras = build_cameras(dvr_user, dvr_pass, poe_user, poe_pass)
  
-        cv2.imshow("MBEST Camera Monitoring", dashboard)
+    streams = [
+        CameraStream(name, url)
+        for name, url in cameras.items()
+    ]
  
-        key = cv2.waitKey(1) & 0xFF
+    selected = 0
  
-        if key == ord("q"):
-            break
-        elif key == ord("0"):
-            selected = 0
-        elif key in [ord("1"), ord("2"), ord("3")]:
-            selected = key - ord("0")
+    try:
+        while True:
+            panels = [
+                make_panel(
+                    stream.name,
+                    stream.read(),
+                    stream.connected
+                )
+                for stream in streams
+            ]
  
-finally:
-    for stream in streams:
-        stream.stop()
+            if selected == 0:
+                # Three feeds in one horizontal dashboard
+                dashboard = np.hstack(panels)
+            else:
+                # Enlarge the selected camera
+                dashboard = cv2.resize(
+                    panels[selected - 1],
+                    (1280, 720)
+                )
  
-    cv2.destroyAllWindows()
+            cv2.imshow("MBEST Camera Monitoring", dashboard)
+ 
+            key = cv2.waitKey(1) & 0xFF
+ 
+            if key == ord("q"):
+                break
+            elif key == ord("0"):
+                selected = 0
+            elif key in [ord("1"), ord("2"), ord("3")]:
+                selected = key - ord("0")
+ 
+    finally:
+        for stream in streams:
+            stream.stop()
+ 
+        cv2.destroyAllWindows()
+ 
+ 
+if __name__ == "__main__":
+    main()

@@ -486,6 +486,10 @@ def update_ui():
             btn_id, state = data
             log_status(f"[BTN BOX] Toggle {btn_id} → {'ON' if state else 'OFF'}", tag="btn")
 
+        # ---- Camera stream status → comms log ----
+        elif msg_type == "cam_status":
+            log_comms(f"[CAM] {data}", tag="conn")
+
         # ---- Fallback → status log ----
         else:
             log_status(str(data), tag="info")

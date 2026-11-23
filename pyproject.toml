@@ -19,6 +19,7 @@ camera-discovery = [
 ]
 dev = [
     "pytest==9.2.0",
+    "pytest-cov==7.1.0",
 ]
 odrive-tools = [
     "odrive>=0.6.11.post1",
@@ -31,6 +32,7 @@ default-groups = []
 # Pin indirect dependencies too: python-can's to the original GUI venv's
 # versions, and openpyxl's to the version locked today.
 constraint-dependencies = [
+    "coverage==7.17.4",
     "et-xmlfile==2.0.0",
     "packaging==26.3",
     "typing-extensions==4.16.0",
@@ -38,7 +40,19 @@ constraint-dependencies = [
 ]
 
 [tool.pytest.ini_options]
-# Look for tests only in the GUI's tests folder, and make its src/ importable
-# (import GUI_menus.dashboard_panel etc. work the same as when the GUI runs).
-testpaths = ["Control_GUI/GUI_V3_2/tests"]
+# Tests live in the flat root-level tests/ folder. importlib mode: pytest
+# imports test files without changing sys.path (recommended for new projects).
+# pythonpath makes the GUI's src/ importable (import GUI_menus.dashboard_panel
+# etc. work the same as when the GUI runs).
+testpaths = ["tests"]
 pythonpath = ["Control_GUI/GUI_V3_2/src"]
+addopts = "--import-mode=importlib"
+
+[tool.coverage.run]
+branch = true
+source = ["Control_GUI/GUI_V3_2/src", "Camera_System"]
+
+[tool.coverage.report]
+show_missing = true
+# Also report untested files in folders without __init__.py (cutterhead_pcan).
+include_namespace_packages = true

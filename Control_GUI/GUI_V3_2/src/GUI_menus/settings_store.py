@@ -51,6 +51,20 @@ DEFAULTS = {
         "splash_autorotate": False,
         "splash_background": "Navy (Default)",
     },
+    "cameras": {
+        # Camera sources. Credentials are deliberately blank here -
+        # fill them in ~/.tbm_gui_settings.json (outside git), never in
+        # this file, so no password ends up in the repository.
+        "dvr": {"ip": "192.168.1.10",  "port": 554, "username": "", "password": ""},
+        "poe": {"ip": "192.168.1.172", "port": 554, "username": "", "password": ""},
+        # One Dashboard tile per entry. "source" picks dvr/poe above.
+        # Add, remove or reorder feeds here - no code changes needed.
+        "feeds": [
+            {"name": "Internal Camera 1",   "source": "dvr", "path": "/Streaming/Channels/101"},
+            {"name": "Internal Camera 2",   "source": "dvr", "path": "/cam/realmonitor?channel=2&subtype=0"},
+            {"name": "External PoE Camera", "source": "poe", "path": "/stream1"},
+        ],
+    },
     "thresholds": {},   # sensor_key -> {"warn": float, "crit": float}
 }
 

@@ -20,6 +20,36 @@ import time
 import GTW_Control_Comms.gtw_mqtt_commands as command
 import GUI_menus.settings_store as settings_store
 import GUI_menus.file_logger as file_logger
+import os
+import sys
+
+# =========================
+# CAMERA STREAMS
+# CameraStream and rtsp_url are imported from the camera team's module
+# (Camera_System/three_cameras.py) rather than copied, so there is one
+# implementation. Addresses, stream paths and credentials come from
+# settings_store["cameras"] and are injected into it from here.
+# =========================
+_CAMERA_SYSTEM_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "..", "..", "Camera_System",
+))
+if _CAMERA_SYSTEM_DIR not in sys.path:
+    sys.path.insert(0, _CAMERA_SYSTEM_DIR)
+
+try:
+    import cv2
+    from PIL import Image, ImageTk
+    from three_cameras import CameraStream, rtsp_url
+    _CAMERA_IMPORT_ERROR = None
+except Exception as error:
+    # Missing opencv/numpy, or Camera_System not found. The rest of the
+    # Dashboard must still work - cameras are just shown as unavailable.
+    CameraStream = rtsp_url = None
+    _CAMERA_IMPORT_ERROR = str(error)
+
+_CAM_REFRESH_MS = 66      # ~15 fps per tile, drawn on the Tk main thread
+_camera_streams = []      # [(name, CameraStream)], created on first Dashboard open
 
 # =========================
 # THEME — matches main GUI
@@ -412,6 +442,94 @@ def create_estop_widget(parent, size: int = 130, bg: str = None):
     return wrapper
 
 
+def _camera_status_reporter():
+    """Build an on_status callback for one CameraStream. Runs on that
+    stream's background thread, so it only touches msg_queue (thread-safe)
+    - never Tk widgets. Repeated identical messages (e.g. 'connection
+    failed' every 2 s while a camera is offline) are reported once."""
+    last = {"msg": None}
+
+    def report(msg):
+        if msg != last["msg"]:
+            last["msg"] = msg
+            command.msg_queue.put(("cam_status", msg))
+    return report
+
+
+def _camera_feed_configs():
+    """[(name, url)] built from settings_store['cameras']. URLs contain
+    credentials, so they are never logged."""
+    cams = settings_store.get("cameras", default={}) or {}
+    result = []
+    for feed in cams.get("feeds", []):
+        name = feed.get("name", "Camera")
+        src = cams.get(feed.get("source"))
+        if not isinstance(src, dict):
+            log_comms(f"[CAM] {name}: unknown source {feed.get('source')!r} - skipped", tag="err")
+            continue
+        url = rtsp_url(src.get("ip", ""), src.get("username", ""),
+                       src.get("password", ""), feed.get("path", ""),
+                       port=src.get("port", 554))
+        result.append((name, url))
+    return result
+
+
+def _start_camera_streams():
+    """Create the shared CameraStreams once. They keep running after the
+    Dashboard is closed, so reopening it shows video straight away instead
+    of waiting for every RTSP stream to reconnect - and reopening never
+    stacks up duplicate connections."""
+    if _camera_streams:
+        return
+    if CameraStream is None:
+        log_comms(f"[CAM] Camera support disabled: {_CAMERA_IMPORT_ERROR}", tag="err")
+        return
+    for name, url in _camera_feed_configs():
+        _camera_streams.append(
+            (name, CameraStream(name, url, on_status=_camera_status_reporter()))
+        )
+    if not _camera_streams:
+        log_comms("[CAM] No camera feeds configured in settings", tag="err")
+
+
+def _render_camera(feed, stream, dot, status_lbl, redraw_placeholder):
+    """Tk-thread loop for one tile: draw the stream's newest frame,
+    scaled to fit, or the placeholder while there's no signal."""
+    try:
+        if not feed.winfo_exists():
+            return                          # Dashboard closed - stop this loop
+        frame = stream.read()
+        w, h = feed.winfo_width(), feed.winfo_height()
+
+        if frame is not None and w > 1 and h > 1:
+            fh, fw = frame.shape[:2]
+            scale = min(w / fw, h / fh)
+            size = (max(1, int(fw * scale)), max(1, int(fh * scale)))
+            rgb = cv2.cvtColor(cv2.resize(frame, size), cv2.COLOR_BGR2RGB)
+            photo = ImageTk.PhotoImage(Image.fromarray(rgb))
+            feed.delete("placeholder")
+            feed.delete("frame")
+            feed.create_image(w // 2, h // 2, image=photo, tags="frame")
+            feed.image = photo              # keep a reference or Tk drops the image
+            dot.config(fg="#22c55e")
+            status_lbl.config(text="LIVE", fg="#22c55e")
+        else:
+            if feed.find_withtag("frame"):  # just lost signal
+                feed.delete("frame")
+                redraw_placeholder()
+            if stream.connected:
+                dot.config(fg="#facc15")
+                status_lbl.config(text="Waiting for frame", fg="#facc15")
+            else:
+                dot.config(fg="#ef4444")
+                status_lbl.config(text="No Signal", fg="gray")
+    except tk.TclError:
+        return                              # widgets torn down mid-update
+
+    feed.after(_CAM_REFRESH_MS, _render_camera,
+               feed, stream, dot, status_lbl, redraw_placeholder)
+
+
 # =========================
 # PANEL WINDOW
 # =========================
@@ -471,13 +589,11 @@ def open_dashboard_panel(root):
     # =========================
     cam_row = tk.Frame(content, bg=BG_MAIN)
     cam_row.pack(fill="both", expand=True, padx=15, pady=(10, 6))
-    cam_row.columnconfigure(0, weight=1)
-    cam_row.columnconfigure(1, weight=1)
 
-    def make_camera_panel(parent, col, label):
+    def make_camera_panel(parent, col, count, label):
         frame = tk.Frame(parent, bg=BG_CARD)
         frame.grid(row=0, column=col, sticky="nsew",
-                   padx=(0 if col == 0 else 6, 6 if col == 0 else 0))
+                   padx=(0 if col == 0 else 6, 0 if col == count - 1 else 6))
         frame.rowconfigure(1, weight=1)
         frame.columnconfigure(0, weight=1)
 
@@ -492,14 +608,17 @@ def open_dashboard_panel(root):
                            font=("Segoe UI", 12))
         cam_dot.pack(side="right", padx=(0, 4))
 
-        tk.Label(hdr, text="No Signal",
-                 fg="gray", bg=BG_CARD,
-                 font=("Segoe UI", 9)).pack(side="right", padx=(0, 6))
+        status_lbl = tk.Label(hdr, text="No Signal",
+                              fg="gray", bg=BG_CARD,
+                              font=("Segoe UI", 9))
+        status_lbl.pack(side="right", padx=(0, 6))
 
         feed = tk.Canvas(frame, bg="#0a0a0a", highlightthickness=0)
         feed.grid(row=1, column=0, sticky="nsew", padx=10, pady=8)
 
         def _draw_placeholder(event=None):
+            if feed.find_withtag("frame"):
+                return                      # live video showing - don't draw over it
             feed.delete("placeholder")
             w = feed.winfo_width()
             h = feed.winfo_height()
@@ -535,10 +654,19 @@ def open_dashboard_panel(root):
 
         feed.bind("<Configure>", _draw_placeholder)
 
-        return feed, cam_dot
+        return feed, cam_dot, status_lbl, _draw_placeholder
 
-    make_camera_panel(cam_row, 0, "CAMERA 1  —  Forward View")
-    make_camera_panel(cam_row, 1, "CAMERA 2  —  Cutterhead View")
+    # One tile per configured feed (settings_store["cameras"]["feeds"]).
+    _start_camera_streams()
+    tiles = _camera_streams or [("CAMERAS UNAVAILABLE - see comms log", None)]
+    for col in range(len(tiles)):
+        cam_row.columnconfigure(col, weight=1)
+    for col, (name, stream) in enumerate(tiles):
+        feed, cam_dot, status_lbl, redraw = make_camera_panel(
+            cam_row, col, len(tiles), name)
+        if stream is not None:
+            feed.after(_CAM_REFRESH_MS, _render_camera,
+                       feed, stream, cam_dot, status_lbl, redraw)
 
     # =========================
     # LOG PANELS — side by side
