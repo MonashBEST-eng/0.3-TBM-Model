@@ -77,7 +77,7 @@ typedef struct{
 /*                             demonstration code based on hardware semaphore */
 /* This define is present in both CM7/CM4 projects                            */
 /* To comment when developping/debugging on a single core                     */
-#define DUAL_CORE_BOOT_SYNC_SEQUENCE
+// #define DUAL_CORE_BOOT_SYNC_SEQUENCE
 
 #if defined(DUAL_CORE_BOOT_SYNC_SEQUENCE)
 #ifndef HSEM_ID_0
@@ -133,10 +133,10 @@ typedef struct{
 #define M5_A_Pin       GPIO_PIN_0
 #define M5_B_GPIO_Port GPIOD
 #define M5_B_Pin       GPIO_PIN_1
-#define M6_A_GPIO_Port GPIOF
-#define M6_A_Pin       GPIO_PIN_14
-#define M6_B_GPIO_Port GPIOF
-#define M6_B_Pin       GPIO_PIN_15
+#define M6_A_GPIO_Port GPIOE
+#define M6_A_Pin       GPIO_PIN_13
+#define M6_B_GPIO_Port GPIOE
+#define M6_B_Pin       GPIO_PIN_14
 #endif
 /* USER CODE END PD */
 
@@ -279,10 +279,9 @@ static void duty_limits_init(void){
 
 // Only does anything if the M*_A / M*_B pins were not created in CubeMX
 static void dir_pins_init(void){
-#ifdef DIR_PINS_FALLBACK
 	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOD_CLK_ENABLE();
-	__HAL_RCC_GPIOF_CLK_ENABLE();
+	__HAL_RCC_GPIOE_CLK_ENABLE();
 	GPIO_InitTypeDef g = {0};
 	g.Mode  = GPIO_MODE_OUTPUT_PP;
 	g.Pull  = GPIO_NOPULL;
@@ -296,7 +295,6 @@ static void dir_pins_init(void){
 		g.Pin = m->GPIOPinB;
 		HAL_GPIO_Init(m->gpioportB, &g);
 	}
-#endif
 }
 
 static void move_all_generic(command_direction direction){
@@ -677,7 +675,7 @@ Error_Handler();
 	  {
 		  last_enc_ms = now;
 		  update_encoders();
-		  sync_actuators();
+		  // sync_actuators();
 	  }
 
 	  //------------------- Print every 100 ms (updates the same 5 lines) ----------------------
