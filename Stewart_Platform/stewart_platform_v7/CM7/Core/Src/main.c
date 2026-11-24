@@ -113,14 +113,14 @@ typedef struct{
 // If not, these fallbacks are used and the pins are configured in code (dir_pins_init).
 #ifndef M1_A_Pin
 #define DIR_PINS_FALLBACK
-#define M1_A_GPIO_Port GPIOC
-#define M1_A_Pin       GPIO_PIN_8
-#define M1_B_GPIO_Port GPIOC
-#define M1_B_Pin       GPIO_PIN_9
-#define M2_A_GPIO_Port GPIOC
-#define M2_A_Pin       GPIO_PIN_10
-#define M2_B_GPIO_Port GPIOC
-#define M2_B_Pin       GPIO_PIN_11
+#define M1_A_GPIO_Port GPIOE
+#define M1_A_Pin       GPIO_PIN_2
+#define M1_B_GPIO_Port GPIOE
+#define M1_B_Pin       GPIO_PIN_4
+#define M2_A_GPIO_Port GPIOE
+#define M2_A_Pin       GPIO_PIN_3
+#define M2_B_GPIO_Port GPIOF
+#define M2_B_Pin       GPIO_PIN_7
 #define M3_A_GPIO_Port GPIOD
 #define M3_A_Pin       GPIO_PIN_3
 #define M3_B_GPIO_Port GPIOD
@@ -496,7 +496,7 @@ static void print_status(const int32_t s[], minResult mn){
 		fault ? "FAULT: press to home" : "");
 
 	// drop this frame rather than ever blocking the control loop
-	if (n > 0 && (size_t)n < sizeof(b) && tx_free() >= (uint16_t)n){
+	if (n > 0 && (size_t)n < sizeof(b) && tx_free() >=	 (uint16_t)n){
 		uart_write(b, (uint16_t)n);
 	}
 }
@@ -1363,6 +1363,33 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOE, M1_A_Pin|M2_A_Pin|M1_B_Pin|M6_A_Pin
+                          |M6_B_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(M2_B_GPIO_Port, M2_B_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, M5_A_Pin|M5_B_Pin|M3_A_Pin|M3_B_Pin
+                          |M4_A_Pin|M4_B_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : M1_A_Pin M2_A_Pin M1_B_Pin M6_A_Pin
+                           M6_B_Pin */
+  GPIO_InitStruct.Pin = M1_A_Pin|M2_A_Pin|M1_B_Pin|M6_A_Pin
+                          |M6_B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : M2_B_Pin */
+  GPIO_InitStruct.Pin = M2_B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(M2_B_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : PA8 PA11 PA12 */
   GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_11|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -1370,6 +1397,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF10_OTG1_FS;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : M5_A_Pin M5_B_Pin M3_A_Pin M3_B_Pin
+                           M4_A_Pin M4_B_Pin */
+  GPIO_InitStruct.Pin = M5_A_Pin|M5_B_Pin|M3_A_Pin|M3_B_Pin
+                          |M4_A_Pin|M4_B_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
