@@ -62,8 +62,8 @@ all: main-build
 main-build: stewart_platform_v7_CM7.elf secondary-outputs
 
 # Tool invocations
-stewart_platform_v7_CM7.elf stewart_platform_v7_CM7.map: $(OBJS) $(USER_OBJS) C:\Users\woahw\OneDrive\Desktop\Monash\ BEST\0.3-TBM-Model\Stewart_Platform\stewart_platform_v7\CM7\STM32H755ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "stewart_platform_v7_CM7.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\woahw\OneDrive\Desktop\Monash BEST\0.3-TBM-Model\Stewart_Platform\stewart_platform_v7\CM7\STM32H755ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stewart_platform_v7_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+stewart_platform_v7_CM7.elf stewart_platform_v7_CM7.map: $(OBJS) $(USER_OBJS) C:\Users\jacob\Documents\GitHub\MonashBEST\Stewart_Platform\stewart_platform_v7\CM7\STM32H755ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "stewart_platform_v7_CM7.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\jacob\Documents\GitHub\MonashBEST\Stewart_Platform\stewart_platform_v7\CM7\STM32H755ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stewart_platform_v7_CM7.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

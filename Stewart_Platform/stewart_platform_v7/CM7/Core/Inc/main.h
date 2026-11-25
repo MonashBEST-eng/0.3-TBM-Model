@@ -80,7 +80,11 @@ void Error_Handler(void);
 #define M5_PWM_GPIO_Port GPIOF
 #define M6_PWM_Pin GPIO_PIN_9
 #define M6_PWM_GPIO_Port GPIOF
-#define ENC_2A_Pin GPIO_PIN_0
+#define ENC_5A_Pin GPIO_PIN_0
+#define ENC_5A_GPIO_Port GPIOA
+#define ENC_5B_Pin GPIO_PIN_1
+#define ENC_5B_GPIO_Port GPIOA
+#define ENC_2A_Pin GPIO_PIN_5
 #define ENC_2A_GPIO_Port GPIOA
 #define ENC_1A_Pin GPIO_PIN_9
 #define ENC_1A_GPIO_Port GPIOE
@@ -112,10 +116,6 @@ void Error_Handler(void);
 #define M4_A_GPIO_Port GPIOD
 #define M4_B_Pin GPIO_PIN_6
 #define M4_B_GPIO_Port GPIOD
-#define ENC_5B_Pin GPIO_PIN_11
-#define ENC_5B_GPIO_Port GPIOG
-#define ENC_5A_Pin GPIO_PIN_12
-#define ENC_5A_GPIO_Port GPIOG
 #define ENC_2B_Pin GPIO_PIN_3
 #define ENC_2B_GPIO_Port GPIOB
 #define ENC_3A_Pin GPIO_PIN_4
