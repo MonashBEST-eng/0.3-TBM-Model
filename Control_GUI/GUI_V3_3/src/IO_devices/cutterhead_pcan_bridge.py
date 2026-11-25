@@ -5,7 +5,9 @@
 # UNMODIFIED, copied as-is into IO_devices/cutterhead_pcan/) for use
 # directly from inside this GUI's process, replacing the H7/MQTT relay
 # path for the front cutterhead specifically. Every other subsystem
-# (E-STOP, LEDs, conveyor) keeps using the H7/MQTT path untouched.
+# (LEDs, conveyor) keeps using the H7/MQTT path untouched. E-STOP uses
+# both: the H7 is still told over MQTT, and the cutterhead is stopped
+# directly over PCAN by CutterheadPCAN.emergency_stop().
 #
 # WHY THIS SHAPE:
 # main.py (the provided entry point) is a single-process CLI: it opens
@@ -30,6 +32,7 @@
 # and still works exactly as documented.
 
 import os
+import queue
 import sys
 import threading
 
@@ -60,6 +63,9 @@ class CutterheadPCAN:
         self.controller: MotorController | None = None
         self._thread: threading.Thread | None = None
         self._connect_error: str | None = None
+        # Set by emergency_stop(), cleared only by clear_emergency().
+        # While set, start/set_speed/nudge are refused.
+        self._estop_latched = False
 
     def start_loop(self):
         """Opens PCAN_USBBUS1, sets both axes idle, and starts
@@ -116,17 +122,84 @@ class CutterheadPCAN:
     # would have sent, so controller.py's _handle_command() needs no
     # changes at all. ----
 
-    def start(self):
+    # start/set_speed/nudge return True if the command was queued, or
+    # False if it was refused because the E-STOP is latched, so the GUI
+    # can tell the operator. stop() is always accepted.
+
+    def start(self) -> bool:
+        if self._estop_latched:
+            return False
         command_queue.put("start")
+        return True
 
     def stop(self):
         command_queue.put("stop")
 
-    def set_speed(self, turns_per_sec: float):
+    def set_speed(self, turns_per_sec: float) -> bool:
+        if self._estop_latched:
+            return False
         command_queue.put(f"speed {turns_per_sec}")
+        return True
 
-    def nudge(self, delta: float):
+    def nudge(self, delta: float) -> bool:
+        if self._estop_latched:
+            return False
         command_queue.put("+" if delta > 0 else "-")
+        return True
+
+    # ---- Emergency stop ----
+
+    def emergency_stop(self) -> bool:
+        """IMMEDIATE stop: zero velocity, then idle, on both axes, and
+        latch so nothing can move the cutterhead until clear_emergency().
+
+        Works directly on the bus, NOT through command_queue: the queued
+        "stop" ramps down at RAMP_RATE (35 s from MAX_VELOCITY) and only
+        happens if the control loop thread is alive. Adapted from
+        ODriveCAN.hard_stop(), but without its 0.5 s of sleeps (this runs
+        on the GUI thread) and with idle still attempted if a
+        zero-velocity frame fails.
+
+        Returns True only if every frame was sent. The latch is set even
+        when it returns False, including when PCAN never connected."""
+        self._estop_latched = True
+        _discard_pending_commands()      # a START queued just before must not run after
+
+        if self.odrive is None or self.controller is None:
+            return False                 # PCAN never opened - nothing could be stopped
+
+        # Stop the control loop commanding motion first. With axes_idle
+        # set, its next _update_velocity() sends nothing at all.
+        controller = self.controller
+        controller.running = False
+        controller.target_velocity = 0.0
+        controller.current_velocity = 0.0
+        controller.idle_when_stopped = False
+        controller.axes_idle = True
+
+        all_sent = True
+        for node_id in cutterhead_config.NODE_IDS:
+            try:
+                self.odrive.send_velocity(node_id, 0.0)
+            except Exception as error:
+                all_sent = False
+                print(f"[Cutterhead PCAN] E-STOP: zero velocity to axis {node_id} failed: {error}")
+        for node_id in cutterhead_config.NODE_IDS:
+            try:
+                self.odrive.set_axis_state(node_id, cutterhead_config.AXIS_STATE_IDLE)
+            except Exception as error:
+                all_sent = False
+                print(f"[Cutterhead PCAN] E-STOP: idle to axis {node_id} failed: {error}")
+        return all_sent
+
+    def clear_emergency(self):
+        """Release the E-STOP latch. Sends nothing and starts nothing -
+        the operator must press START again."""
+        self._estop_latched = False
+
+    @property
+    def estop_latched(self) -> bool:
+        return self._estop_latched
 
     # ---- Live status for the GUI display. These read MotorController's
     # own public attributes directly (in-process, no IPC needed) - see
@@ -157,6 +230,15 @@ class CutterheadPCAN:
             "target_velocity": self.controller.target_velocity,
             "current_velocity": self.controller.current_velocity,
         }
+
+
+def _discard_pending_commands():
+    """Empty command_queue without running anything in it."""
+    while True:
+        try:
+            command_queue.get_nowait()
+        except queue.Empty:
+            return
 
 
 # Shared instance - same pattern as get_odrive_controller() /

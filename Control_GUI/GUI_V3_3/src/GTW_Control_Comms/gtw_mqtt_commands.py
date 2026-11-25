@@ -7,6 +7,7 @@ import time
 from queue import Queue
 import GTW_Control_Comms.can_command_dictionary as can_dict
 import GTW_Control_Comms.odrive_can as odrive_can
+from IO_devices.cutterhead_pcan_bridge import get_cutterhead_pcan
 
 # ==================================================
 # # ---------------- MQTT CONFIG ----------------
@@ -221,20 +222,21 @@ def emergency_mode(status):
     msg_queue.put(("mqtt_tx", f"{TOPIC_EMERGENCY} | {status}"))
     _relay_can_command(TOPIC_EMERGENCY, status)
 
-    # An E-STOP or SAFE_MODE must also stop the ODrive. Without this the
-    # ramp loop keeps streaming velocity commands straight through the
-    # emergency - which is exactly what happened on the bench.
+    # An E-STOP or SAFE_MODE must also stop the cutterhead. It runs on its
+    # own PCAN bus, which the H7 cannot reach, so the message above does
+    # not stop it - CutterheadPCAN.emergency_stop() does.
     upper = status.upper()
     if "CLEAR" not in upper and ("STOP" in upper or "SAFE" in upper):
         odrive_emergency_stop()
     elif "CLEAR" in upper:
-        # Release the ODrive estop latch so START works again. Motion does
-        # NOT resume by itself - the operator must press START.
+        # Release the cutterhead's E-STOP latch so START works again.
+        # Motion does NOT resume by itself - the operator must press START.
         try:
-            from GUI_menus.control_panel import get_odrive_controller
-            get_odrive_controller().clear_emergency()
+            get_cutterhead_pcan().clear_emergency()
+            msg_queue.put(("odrive_status",
+                           "[Cutterhead] E-STOP cleared - press START to run again."))
         except Exception as error:
-            msg_queue.put(("odrive_status", f"[ODrive] Clear-emergency warning: {error}"))
+            msg_queue.put(("odrive_status", f"[Cutterhead] Clear emergency FAILED: {error}"))
 
 # startup initialisation commands - first INITIALISE, then START SYSTEM
 # logic implemented on panel side to prevent sending start prior to 15 sec initialisation check period
@@ -346,36 +348,29 @@ def odrive_request_encoder(node_id):
 
 
 def odrive_emergency_stop():
-    """IMMEDIATE ODrive stop - zero velocity then idle, on both axes.
+    """IMMEDIATE cutterhead stop over PCAN - zero velocity then idle, on
+    both axes - and latch it until CLEAR. See
+    CutterheadPCAN.emergency_stop() for why it bypasses the ramped stop.
 
-    Deliberately does NOT go through OdriveController's ramp loop:
-      - a ramped stop from 5 turns/s at RAMP_RATE 1.0 takes 5 SECONDS
-      - the ramp runs on a background thread that has been observed to
-        die/block, and a stop that depends on a thread that might be dead
-        is not a stop at all
-    These frames are published straight to the relay, so this works even
-    if the control thread is gone entirely.
-
-    Also halts the controller so its next tick cannot immediately
-    overwrite the zero we just sent with its own ramp value.
+    The ODrive is on the PCAN bus, not the H7's, so nothing is sent
+    through the H7 relay here. The operator is told the real outcome:
+    if the cutterhead could not be confirmed stopped, the message says
+    FAILED and points to the hardware E-STOP.
     """
-    # 1. Halt the ramp loop first, so it stops issuing velocity frames.
-    #    Imported lazily to avoid a circular import at module load
-    #    (control_panel imports this module).
+    error = None
     try:
-        from GUI_menus.control_panel import get_odrive_controller
-        get_odrive_controller().emergency_halt()
-    except Exception as error:
-        # Never let a controller problem prevent the CAN frames below.
-        msg_queue.put(("odrive_status", f"[ODrive] E-STOP halt warning: {error}"))
+        stopped = get_cutterhead_pcan().emergency_stop()
+    except Exception as exc:
+        stopped, error = False, exc
 
-    # 2. Command zero velocity, then idle, regardless of the above.
-    for nid in odrive_can.NODE_IDS:
-        odrive_send_velocity(nid, 0.0)
-    for nid in odrive_can.NODE_IDS:
-        odrive_set_axis_state(nid, odrive_can.AXIS_STATE_IDLE)
-
-    msg_queue.put(("odrive_status", "[ODrive] EMERGENCY STOP - zero velocity + idle sent."))
+    if stopped:
+        msg_queue.put(("odrive_status",
+                       "[Cutterhead] EMERGENCY STOP - zero velocity + idle sent over PCAN."))
+    else:
+        reason = f": {error}" if error else " (PCAN not connected, or a CAN frame failed)"
+        msg_queue.put(("odrive_status",
+                       f"[Cutterhead] EMERGENCY STOP FAILED{reason}. "
+                       "The cutterhead may still be moving - use the hardware E-STOP."))
 
 
 # testing h7 - activate specific led on h7 dev board

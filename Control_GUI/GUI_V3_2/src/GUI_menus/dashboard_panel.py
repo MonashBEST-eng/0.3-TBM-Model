@@ -49,7 +49,7 @@ except Exception as error:
     _CAMERA_IMPORT_ERROR = str(error)
 
 _CAM_REFRESH_MS = 66      # ~15 fps per tile, drawn on the Tk main thread
-_camera_streams = []      # [(name, CameraStream)], created on first Dashboard open
+_camera_streams = []      # [(name, CameraStream)] while the Dashboard is open
 
 # =========================
 # THEME — matches main GUI
@@ -475,10 +475,8 @@ def _camera_feed_configs():
 
 
 def _start_camera_streams():
-    """Create the shared CameraStreams once. They keep running after the
-    Dashboard is closed, so reopening it shows video straight away instead
-    of waiting for every RTSP stream to reconnect - and reopening never
-    stacks up duplicate connections."""
+    """Create one CameraStream per configured feed when the Dashboard
+    opens. _stop_camera_streams() ends them when it closes."""
     if _camera_streams:
         return
     if CameraStream is None:
@@ -490,6 +488,16 @@ def _start_camera_streams():
         )
     if not _camera_streams:
         log_comms("[CAM] No camera feeds configured in settings", tag="err")
+
+
+def _stop_camera_streams():
+    """Stop every stream and forget them, so the next Dashboard open builds
+    fresh ones from the current settings - changed credentials or IPs take
+    effect without restarting the GUI. Returns immediately: each stream's
+    thread winds down by itself within its open/read timeout."""
+    for _name, stream in _camera_streams:
+        stream.stop()
+    _camera_streams.clear()
 
 
 def _render_camera(feed, stream, dot, status_lbl, redraw_placeholder):
@@ -733,6 +741,7 @@ def open_dashboard_panel(root):
         _comms_box = None
         _status_box = None
         _panel_ref = None
+        _stop_camera_streams()
         panel.destroy()
 
     panel.protocol("WM_DELETE_WINDOW", _on_close)

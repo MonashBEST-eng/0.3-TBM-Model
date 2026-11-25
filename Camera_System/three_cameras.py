@@ -45,6 +45,12 @@ def build_cameras(dvr_user, dvr_pass, poe_user, poe_pass,
  
 # ---------------- CAMERA STREAM ----------------
  
+# How long one connection attempt or one frame read may block. OpenCV's
+# default is 30 s each, so without these a stop() - or a stalled feed -
+# could take half a minute to be noticed.
+OPEN_TIMEOUT_MS = 5000
+READ_TIMEOUT_MS = 5000
+ 
 class CameraStream:
     def __init__(self, name, url, on_status=print):
         """on_status is called with a short text message whenever the
@@ -60,6 +66,9 @@ class CameraStream:
         self.lock = threading.Lock()
         self.running = True
         self.connected = False
+        # Set by stop(): wakes the retry pauses immediately instead of
+        # waiting out a time.sleep().
+        self._stop_event = threading.Event()
  
         self.thread = threading.Thread(
             target=self.update,
@@ -70,14 +79,20 @@ class CameraStream:
     def update(self):
         while self.running:
             cap = cv2.VideoCapture(
-                self.url, cv2.CAP_FFMPEG
+                self.url, cv2.CAP_FFMPEG,
+                [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, OPEN_TIMEOUT_MS,
+                 cv2.CAP_PROP_READ_TIMEOUT_MSEC, READ_TIMEOUT_MS]
             )
+ 
+            if not self.running:        # stop() was called while connecting
+                cap.release()
+                break
  
             if not cap.isOpened():
                 self._on_status(f"{self.name}: connection failed")
                 cap.release()
                 self.connected = False
-                time.sleep(2)
+                self._stop_event.wait(2)
                 continue
  
             self.connected = True
@@ -100,7 +115,10 @@ class CameraStream:
  
             if self.running:
                 self._on_status(f"{self.name}: reconnecting...")
-                time.sleep(1)
+                self._stop_event.wait(1)
+ 
+        self.connected = False
+        self._on_status(f"{self.name}: stopped")
  
     def read(self):
         with self.lock:
@@ -109,7 +127,13 @@ class CameraStream:
             return self.frame.copy()
  
     def stop(self):
+        """Ask the stream to stop. Returns immediately: the background
+        thread finishes its current connect or read (at most
+        OPEN_TIMEOUT_MS / READ_TIMEOUT_MS), then releases the camera and
+        exits. It is never killed mid-call, because releasing an OpenCV
+        capture from another thread while it is reading is not safe."""
         self.running = False
+        self._stop_event.set()
  
 # ---------------- DISPLAY ----------------
  
