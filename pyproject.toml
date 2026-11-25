@@ -45,12 +45,12 @@ constraint-dependencies = [
 # pythonpath makes the GUI's src/ importable (import GUI_menus.dashboard_panel
 # etc. work the same as when the GUI runs).
 testpaths = ["tests"]
-pythonpath = ["Control_GUI/GUI_V3_2/src"]
+pythonpath = ["Control_GUI/GUI_V3_3/src"]
 addopts = "--import-mode=importlib"
 
 [tool.coverage.run]
 branch = true
-source = ["Control_GUI/GUI_V3_2/src", "Camera_System"]
+source = ["Control_GUI/GUI_V3_3/src", "Camera_System"]
 
 [tool.coverage.report]
 show_missing = true
