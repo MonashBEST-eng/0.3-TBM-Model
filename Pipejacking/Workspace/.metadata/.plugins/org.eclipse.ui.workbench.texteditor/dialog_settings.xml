@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item key="hasShownOverlayPopupBefore" value="true"/>
+	<item key="replaceBarOpen" value="false"/>
+	<list key="searchhistory">
+		<item value="encod"/>
+		<item value="buf"/>
+		<item value="snp"/>
+		<item value="BSP_com_init"/>
+		<item value="init"/>
+		<item value="actuators_home_all"/>
+		<item value="while"/>
+		<item value="main"/>
+		<item value="error_handler"/>
+		<item value="last_cnt"/>
+		<item value="actuator_pins"/>
+		<item value="Actuator"/>
+		<item value="ActuatorPins"/>
+		<item value="PIN_PORT"/>
+		<item value="HAL_TIM_PWM"/>
+	</list>
+</section>

@@ -1,0 +1,1506 @@
+16:43:32 **** Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_exti.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ex.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_flash_ramfunc.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_gpio.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart.o"
+arm-none-eabi-gcc "../Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart_ex.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart_ex.d" -MT"Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart_ex.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_usart_ex.o"
+arm-none-eabi-gcc "../Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.d" -MT"Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.o"
+arm-none-eabi-gcc -mcpu=cortex-m4 -g3 -DDEBUG -c -x assembler-with-cpp -MMD -MP -MF"Core/Startup/startup_stm32g431rbtx.d" -MT"Core/Startup/startup_stm32g431rbtx.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Startup/startup_stm32g431rbtx.o" "../Core/Startup/startup_stm32g431rbtx.s"
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_it.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_it.d" -MT"Core/Src/stm32g4xx_it.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_it.o"
+arm-none-eabi-gcc "../Core/Src/syscalls.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/syscalls.d" -MT"Core/Src/syscalls.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/syscalls.o"
+arm-none-eabi-gcc "../Core/Src/sysmem.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/sysmem.d" -MT"Core/Src/sysmem.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/sysmem.o"
+arm-none-eabi-gcc "../Core/Src/system_stm32g4xx.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/system_stm32g4xx.d" -MT"Core/Src/system_stm32g4xx.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/system_stm32g4xx.o"
+../Core/Src/main.c:54:5: error: redeclaration of enumerator 'HAL_OK'
+   54 |     HAL_OK      = 0x00,
+      |     ^~~~~~
+In file included from ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_rcc.h:27,
+                 from ../Core/Inc/stm32g4xx_hal_conf.h:212,
+                 from ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal.h:29,
+                 from ../Core/Inc/main.h:30,
+                 from ../Core/Src/main.c:14:
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_def.h:40:3: note: previous definition of 'HAL_OK' with type 'enum <anonymous>'
+   40 |   HAL_OK       = 0x00U,
+      |   ^~~~~~
+../Core/Src/main.c:55:5: error: redeclaration of enumerator 'HAL_ERROR'
+   55 |     HAL_ERROR   = 0x01,
+      |     ^~~~~~~~~
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_def.h:41:3: note: previous definition of 'HAL_ERROR' with type 'enum <anonymous>'
+   41 |   HAL_ERROR    = 0x01U,
+      |   ^~~~~~~~~
+../Core/Src/main.c:56:5: error: redeclaration of enumerator 'HAL_BUSY'
+   56 |     HAL_BUSY    = 0x02,
+      |     ^~~~~~~~
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_def.h:42:3: note: previous definition of 'HAL_BUSY' with type 'enum <anonymous>'
+   42 |   HAL_BUSY     = 0x02U,
+      |   ^~~~~~~~
+../Core/Src/main.c:57:5: error: redeclaration of enumerator 'HAL_TIMEOUT'
+   57 |     HAL_TIMEOUT = 0x03
+      |     ^~~~~~~~~~~
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_def.h:43:3: note: previous definition of 'HAL_TIMEOUT' with type 'enum <anonymous>'
+   43 |   HAL_TIMEOUT  = 0x03U
+      |   ^~~~~~~~~~~
+../Core/Src/main.c:58:3: error: conflicting types for 'HAL_StatusTypeDef'; have 'enum <anonymous>'
+   58 | } HAL_StatusTypeDef;
+      |   ^~~~~~~~~~~~~~~~~
+../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_def.h:44:3: note: previous declaration of 'HAL_StatusTypeDef' with type 'HAL_StatusTypeDef'
+   44 | } HAL_StatusTypeDef;
+      |   ^~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'motor_set':
+../Core/Src/main.c:31:18: error: 'GPIO_PC1_GPIO_Port' undeclared (first use in this function)
+   31 | #define PIN_PORT GPIO_PC1_GPIO_Port   // PC1 and PC2 are both on port C
+      |                  ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:78:23: note: in expansion of macro 'PIN_PORT'
+   78 |     HAL_GPIO_WritePin(PIN_PORT, PIN_A | PIN_B, GPIO_PIN_RESET);
+      |                       ^~~~~~~~
+../Core/Src/main.c:31:18: note: each undeclared identifier is reported only once for each function it appears in
+   31 | #define PIN_PORT GPIO_PC1_GPIO_Port   // PC1 and PC2 are both on port C
+      |                  ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:78:23: note: in expansion of macro 'PIN_PORT'
+   78 |     HAL_GPIO_WritePin(PIN_PORT, PIN_A | PIN_B, GPIO_PIN_RESET);
+      |                       ^~~~~~~~
+../Core/Src/main.c:29:18: error: 'GPIO_PC1_Pin' undeclared (first use in this function)
+   29 | #define PIN_A    GPIO_PC1_Pin
+      |                  ^~~~~~~~~~~~
+../Core/Src/main.c:78:33: note: in expansion of macro 'PIN_A'
+   78 |     HAL_GPIO_WritePin(PIN_PORT, PIN_A | PIN_B, GPIO_PIN_RESET);
+      |                                 ^~~~~
+../Core/Src/main.c:30:18: error: 'GPIO_PC2_Pin' undeclared (first use in this function)
+   30 | #define PIN_B    GPIO_PC2_Pin
+      |                  ^~~~~~~~~~~~
+../Core/Src/main.c:78:41: note: in expansion of macro 'PIN_B'
+   78 |     HAL_GPIO_WritePin(PIN_PORT, PIN_A | PIN_B, GPIO_PIN_RESET);
+      |                                         ^~~~~
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:134:48: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  134 |   if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
+      |                                                ^~
+../Core/Src/main.c:165:13: error: 'status' undeclared (first use in this function); did you mean 'ITStatus'?
+  165 |             status = motor_set(CMD_STOP, 0.0f);
+      |             ^~~~~~
+      |             ITStatus
+../Core/Src/main.c:110:21: warning: unused variable 'HAL_status' [-Wunused-variable]
+  110 |   HAL_StatusTypeDef HAL_status = HAL_OK;
+      |                     ^~~~~~~~~~
+../Core/Src/main.c: In function 'SystemClock_Config':
+../Core/Src/main.c:211:45: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  211 |   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+      |                                             ^~
+../Core/Src/main.c:225:64: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  225 |   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
+      |                                                                ^~
+../Core/Src/main.c: In function 'MX_TIM1_Init':
+../Core/Src/main.c:258:33: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  258 |   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+      |                                 ^~
+../Core/Src/main.c:263:62: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  263 |   if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+      |                                                              ^~
+../Core/Src/main.c:267:32: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  267 |   if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+      |                                ^~
+../Core/Src/main.c:274:69: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  274 |   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+      |                                                                     ^~
+../Core/Src/main.c:285:68: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  285 |   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+      |                                                                    ^~
+../Core/Src/main.c:302:68: warning: comparison between 'HAL_StatusTypeDef' and 'enum <anonymous>' [-Wenum-compare]
+  302 |   if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+      |                                                                    ^~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+make: *** Waiting for unfinished jobs....
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+16:47:13 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_it.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_it.d" -MT"Core/Src/stm32g4xx_it.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_it.o"
+../Core/Src/main.c:62:26: warning: 'motor_set' defined but not used [-Wunused-function]
+   62 | static HAL_StatusTypeDef motor_set(ActuatorCommand_t cmd, float duty)
+      |                          ^~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  15868	     32	   1816	  17716	   4534	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:48:19 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:156:21: error: 'status' undeclared (first use in this function); did you mean 'ITStatus'?
+  156 |                     status = motor_set(CMD_STOP, 0.0f);
+      |                     ^~~~~~
+      |                     ITStatus
+../Core/Src/main.c:156:21: note: each undeclared identifier is reported only once for each function it appears in
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+16:48:52 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  16272	     32	   1816	  18120	   46c8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:51:53 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  16272	     32	   1816	  18120	   46c8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:55:51 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    124	   2156	  21636	   5484	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:59:03 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  16688	     32	   1816	  18536	   4868	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+17:05:59 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  16688	     32	   1816	  18536	   4868	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+17:13:03 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/STM/STM32CubeIDE_1.19.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld.exe: ./Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.o: in function `__io_putchar':
+C:/STM/STM_projects/MBEST/H_bridge_simple/H_bridge_simple/Debug/../Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.c:577: multiple definition of `__io_putchar'; ./Core/Src/main.o:C:/STM/STM_projects/MBEST/H_bridge_simple/H_bridge_simple/Debug/../Core/Src/main.c:94: first defined here
+collect2.exe: error: ld returned 1 exit status
+make: *** [makefile:65: H_bridge_simple.elf] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+17:13:24 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+17:13:30 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:18:43 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:20:01 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:20:13 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:20:43 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:23:12 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:23:18 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:28:15 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:28:32 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21164	    124	   2308	  23596	   5c2c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:32:14 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  21168	    124	   2308	  23600	   5c30	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+17:32:21 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21168	    124	   2308	  23600	   5c30	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+17:34:29 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/STM/STM32CubeIDE_1.19.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld.exe: ./Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.o: in function `__io_putchar':
+C:/STM/STM_projects/MBEST/H_bridge_simple/H_bridge_simple/Debug/../Drivers/BSP/STM32G4xx_Nucleo/stm32g4xx_nucleo.c:577: multiple definition of `__io_putchar'; ./Core/Src/main.o:C:/STM/STM_projects/MBEST/H_bridge_simple/H_bridge_simple/Debug/../Core/Src/main.c:95: first defined here
+collect2.exe: error: ld returned 1 exit status
+make: *** [makefile:65: H_bridge_simple.elf] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+14:32:44 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:168:72: warning: too many arguments for format [-Wformat-extra-args]
+  168 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Stop\r\n", counter++);
+      |                                                                        ^~~~~~~~~~
+../Core/Src/main.c:174:25: error: redefinition of 'len'
+  174 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Forward\r\n", counter++);
+      |                         ^~~
+../Core/Src/main.c:168:25: note: previous definition of 'len' with type 'int'
+  168 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Stop\r\n", counter++);
+      |                         ^~~
+../Core/Src/main.c:174:72: warning: too many arguments for format [-Wformat-extra-args]
+  174 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Forward\r\n", counter++);
+      |                                                                        ^~~~~~~~~~~~~
+../Core/Src/main.c:180:25: error: redefinition of 'len'
+  180 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Stop\r\n", counter++);
+      |                         ^~~
+../Core/Src/main.c:174:25: note: previous definition of 'len' with type 'int'
+  174 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Forward\r\n", counter++);
+      |                         ^~~
+../Core/Src/main.c:180:72: warning: too many arguments for format [-Wformat-extra-args]
+  180 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Stop\r\n", counter++);
+      |                                                                        ^~~~~~~~~~
+../Core/Src/main.c:186:25: error: redefinition of 'len'
+  186 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Reverse\r\n", counter++);
+      |                         ^~~
+../Core/Src/main.c:180:25: note: previous definition of 'len' with type 'int'
+  180 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Stop\r\n", counter++);
+      |                         ^~~
+../Core/Src/main.c:186:72: warning: too many arguments for format [-Wformat-extra-args]
+  186 |                     int len = snprintf(msg_buffer, sizeof(msg_buffer), "Reverse\r\n", counter++);
+      |                                                                        ^~~~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+make: *** Waiting for unfinished jobs....
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+14:34:15 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:168:21: error: 'len' undeclared (first use in this function)
+  168 |                     len = snprintf(msg_buffer, sizeof(msg_buffer), "Stop\r\n");
+      |                     ^~~
+../Core/Src/main.c:168:21: note: each undeclared identifier is reported only once for each function it appears in
+../Core/Src/main.c:118:7: warning: unused variable 'counter' [-Wunused-variable]
+  118 |   int counter = 0;
+      |       ^~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+14:34:33 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  21264	    112	   2296	  23672	   5c78	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+14:34:43 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21264	    112	   2296	  23672	   5c78	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+14:54:06 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21264	    112	   2296	  23672	   5c78	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+14:54:15 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21264	    112	   2296	  23672	   5c78	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:08:58 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  21264	    112	   2296	  23672	   5c78	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:09:07 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21264	    112	   2296	  23672	   5c78	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:18:15 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19424	    112	   2152	  21688	   54b8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:18:37 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19424	    112	   2152	  21688	   54b8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:19:45 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19544	    112	   2152	  21808	   5530	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:19:51 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19544	    112	   2152	  21808	   5530	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:20:07 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19544	    112	   2152	  21808	   5530	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:20:15 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19544	    112	   2152	  21808	   5530	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:21:31 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19544	    112	   2152	  21808	   5530	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:27:00 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19544	    112	   2152	  21808	   5530	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:33:47 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19548	    112	   2152	  21812	   5534	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:33:55 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19548	    112	   2152	  21812	   5534	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:35:08 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19548	    112	   2152	  21812	   5534	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:41:19 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19552	    112	   2152	  21816	   5538	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:41:25 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19552	    112	   2152	  21816	   5538	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:42:34 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19552	    112	   2152	  21816	   5538	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:42:43 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19552	    112	   2152	  21816	   5538	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:02:19 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:02:31 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:04:07 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:04:34 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:18:05 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:18:11 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:01:01 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:01:34 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:03:24 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:03:30 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19308	    112	   2152	  21572	   5444	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:06:07 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19304	    112	   2152	  21568	   5440	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:06:15 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19304	    112	   2152	  21568	   5440	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:13:33 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:64:71: error: unknown type name 'bool'
+   64 | static HAL_StatusTypeDef motor_set(ActuatorCommand_t cmd, float duty, bool safety)
+      |                                                                       ^~~~
+../Core/Src/main.c:15:1: note: 'bool' is defined in header '<stdbool.h>'; did you forget to '#include <stdbool.h>'?
+   14 | #include "main.h"
+  +++ |+#include <stdbool.h>
+   15 | 
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:169:30: warning: implicit declaration of function 'motor_set' [-Wimplicit-function-declaration]
+  169 |                     status = motor_set(CMD_FORWARD, 0.5f);
+      |                              ^~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+18:18:10 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_it.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_it.d" -MT"Core/Src/stm32g4xx_it.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_it.o"
+../Core/Src/main.c:64:71: error: unknown type name 'bool'
+   64 | static HAL_StatusTypeDef motor_set(ActuatorCommand_t cmd, float duty, bool safety)
+      |                                                                       ^~~~
+../Core/Src/main.c:15:1: note: 'bool' is defined in header '<stdbool.h>'; did you forget to '#include <stdbool.h>'?
+   14 | #include "main.h"
+  +++ |+#include <stdbool.h>
+   15 | 
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:170:30: warning: implicit declaration of function 'motor_set' [-Wimplicit-function-declaration]
+  170 |                     status = motor_set(CMD_FORWARD, 0.5f, 0);
+      |                              ^~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+make: *** Waiting for unfinished jobs....
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+18:24:55 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:64:71: error: unknown type name 'bool'
+   64 | static HAL_StatusTypeDef motor_set(ActuatorCommand_t cmd, float duty, bool safety)
+      |                                                                       ^~~~
+../Core/Src/main.c:15:1: note: 'bool' is defined in header '<stdbool.h>'; did you forget to '#include <stdbool.h>'?
+   14 | #include "main.h"
+  +++ |+#include <stdbool.h>
+   15 | 
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:171:30: warning: implicit declaration of function 'motor_set' [-Wimplicit-function-declaration]
+  171 |                     status = motor_set(CMD_FORWARD, 0.5f, 0);
+      |                              ^~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+18:25:13 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:26:14 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:26:37 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:27:08 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:27:13 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:28:08 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:28:13 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:40:08 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:40:32 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:40:38 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:45:19 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:45:25 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:46:08 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:46:15 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19352	    112	   2152	  21616	   5470	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:46:51 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:46:54 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:49:17 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:49:21 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:51:47 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:53:03 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:55:39 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:55:43 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+18:58:03 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+18:59:08 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+19:01:12 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+19:01:18 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+19:04:27 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+19:04:36 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  19356	    112	   2152	  21620	   5474	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+14:17:24 **** Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_it.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_it.d" -MT"Core/Src/stm32g4xx_it.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_it.o"
+../Core/Src/main.c:827:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  827 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24284	    112	   2632	  27028	   6994	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+14:17:33 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:907:13: warning: 'calibrate_stroke' defined but not used [-Wunused-function]
+  907 | static void calibrate_stroke(ActuatorId_t id)
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:827:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  827 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24320	    112	   2632	  27064	   69b8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+14:24:14 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:274:3: warning: implicit declaration of function 'calibrate_stroke' [-Wimplicit-function-declaration]
+  274 |   calibrate_stroke(ACTUATOR_A); // TODO delete one calibrate stoke done
+      |   ^~~~~~~~~~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:912:13: warning: conflicting types for 'calibrate_stroke'; have 'void(ActuatorId_t)'
+  912 | static void calibrate_stroke(ActuatorId_t id)
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:912:13: error: static declaration of 'calibrate_stroke' follows non-static declaration
+../Core/Src/main.c:274:3: note: previous implicit declaration of 'calibrate_stroke' with type 'void(ActuatorId_t)'
+  274 |   calibrate_stroke(ACTUATOR_A); // TODO delete one calibrate stoke done
+      |   ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:959:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  959 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:912:13: warning: 'calibrate_stroke' defined but not used [-Wunused-function]
+  912 | static void calibrate_stroke(ActuatorId_t id)
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:832:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  832 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+14:25:22 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:960:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  960 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:833:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  833 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24232	    112	   2632	  26976	   6960	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:08:27 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:963:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  963 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:836:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  836 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24276	    112	   2632	  27020	   698c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:09:00 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24276	    112	   2632	  27020	   698c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:19:35 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:1024:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1024 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:971:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  971 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:844:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  844 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\H_bridge_simple\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24276	    112	   2632	  27020	   698c	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:37:34 **** Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32g4xx_hal_msp.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32g4xx_hal_msp.d" -MT"Core/Src/stm32g4xx_hal_msp.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/stm32g4xx_hal_msp.o"
+../Core/Src/main.c:1021:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1021 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:968:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  968 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:841:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  841 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\MBEST_0.3_repo\0.3-TBM-Model\Pipejacking\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24232	    112	   2632	  26976	   6960	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+15:37:40 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24232	    112	   2632	  26976	   6960	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:51:51 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24232	    112	   2632	  26976	   6960	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:51:57 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24232	    112	   2632	  26976	   6960	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+15:58:13 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:284:20: error: 'buf' undeclared (first use in this function)
+  284 |   int n = snprintf(buf, sizeof buf, "startup\r\n",
+      |                    ^~~
+../Core/Src/main.c:284:20: note: each undeclared identifier is reported only once for each function it appears in
+../Core/Src/main.c:285:25: error: 's' undeclared (first use in this function)
+  285 |                    (int)s->status, (long)s->dist);
+      |                         ^
+../Core/Src/main.c:288:7: error: redefinition of 'n'
+  288 |   int n = snprintf(buf, sizeof buf, "reversing\r\n",
+      |       ^
+../Core/Src/main.c:284:7: note: previous definition of 'n' with type 'int'
+  284 |   int n = snprintf(buf, sizeof buf, "startup\r\n",
+      |       ^
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:1035:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1035 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:982:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  982 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:855:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  855 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+15:59:00 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:284:20: error: 'buf' undeclared (first use in this function)
+  284 |   int n = snprintf(buf, sizeof buf, "startup\r\n");
+      |                    ^~~
+../Core/Src/main.c:284:20: note: each undeclared identifier is reported only once for each function it appears in
+../Core/Src/main.c:287:7: error: redefinition of 'n'
+  287 |   int n = snprintf(buf, sizeof buf, "reversing\r\n");
+      |       ^
+../Core/Src/main.c:284:7: note: previous definition of 'n' with type 'int'
+  284 |   int n = snprintf(buf, sizeof buf, "startup\r\n");
+      |       ^
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:1033:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1033 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:980:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  980 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:853:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  853 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+15:59:20 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:285:16: error: 'buf' undeclared (first use in this function)
+  285 |   n = snprintf(buf, sizeof buf, "startup\r\n");
+      |                ^~~
+../Core/Src/main.c:285:16: note: each undeclared identifier is reported only once for each function it appears in
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:1034:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1034 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:981:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  981 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:854:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  854 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+16:00:40 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:1035:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1035 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:982:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  982 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:855:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  855 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\MBEST_0.3_repo\0.3-TBM-Model\Pipejacking\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24384	    112	   2632	  27128	   69f8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:00:45 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24384	    112	   2632	  27128	   69f8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:01:10 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24384	    112	   2632	  27128	   69f8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:15:26 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:1021:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1021 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:921:13: warning: 'calibrate_stroke' defined but not used [-Wunused-function]
+  921 | static void calibrate_stroke(ActuatorId_t id)
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:841:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  841 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\MBEST_0.3_repo\0.3-TBM-Model\Pipejacking\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:15:32 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:45:40 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:45:44 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:46:04 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:46:14 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:46:50 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:50:58 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:50:59 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:51:22 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24324	    112	   2632	  27068	   69bc	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:54:40 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:1021:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1021 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:921:13: warning: 'calibrate_stroke' defined but not used [-Wunused-function]
+  921 | static void calibrate_stroke(ActuatorId_t id)
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:841:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  841 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\MBEST_0.3_repo\0.3-TBM-Model\Pipejacking\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  24320	    112	   2632	  27064	   69b8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:56:13 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24320	    112	   2632	  27064	   69b8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:56:24 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24320	    112	   2632	  27064	   69b8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:56:31 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24320	    112	   2632	  27064	   69b8	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+16:57:50 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_NUCLEO_64 -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/BSP/STM32G4xx_Nucleo -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:1021:13: warning: 'feedback' defined but not used [-Wunused-function]
+ 1021 | static void feedback(void){
+      |             ^~~~~~~~
+../Core/Src/main.c:968:26: warning: 'actuators_home_all' defined but not used [-Wunused-function]
+  968 | static HAL_StatusTypeDef actuators_home_all(void)
+      |                          ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:921:13: warning: 'calibrate_stroke' defined but not used [-Wunused-function]
+  921 | static void calibrate_stroke(ActuatorId_t id)
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:841:26: warning: 'actuator_goto_mm' defined but not used [-Wunused-function]
+  841 | static HAL_StatusTypeDef actuator_goto_mm(ActuatorId_t id, float abs_mm, float duty, bool safety)
+      |                          ^~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "H_bridge_simple.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\STM\STM_projects\MBEST\MBEST_0.3_repo\0.3-TBM-Model\Pipejacking\H_bridge_simple\STM32G431RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="H_bridge_simple.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: H_bridge_simple.elf
+ 
+arm-none-eabi-size  H_bridge_simple.elf 
+arm-none-eabi-objdump -h -S H_bridge_simple.elf  > "H_bridge_simple.list"
+   text	   data	    bss	    dec	    hex	filename
+  23952	    112	   2632	  26696	   6848	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+Finished building: H_bridge_simple.list
+ 
+16:57:54 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  23952	    112	   2632	  26696	   6848	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 

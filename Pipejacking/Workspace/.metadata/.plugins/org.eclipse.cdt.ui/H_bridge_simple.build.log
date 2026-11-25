@@ -1,0 +1,10 @@
+16:57:54 **** Incremental Build of configuration Debug for project H_bridge_simple ****
+make -j16 all 
+arm-none-eabi-size  H_bridge_simple.elf 
+   text	   data	    bss	    dec	    hex	filename
+  23952	    112	   2632	  26696	   6848	H_bridge_simple.elf
+Finished building: default.size.stdout
+ 
+
+16:57:55 Build Finished. 0 errors, 0 warnings. (took 606ms)
+
