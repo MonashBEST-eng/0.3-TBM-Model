@@ -1,5 +1,5 @@
 Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.o: \
- C:/Users/woahw/OneDrive/Desktop/Monash\ BEST/0.3-TBM-Model/Stewart_Platform/stewart_platform_v7/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c \
+ C:/Users/jacob/Documents/GitHub/MonashBEST/Stewart_Platform/stewart_platform_v7/Common/Src/system_stm32h7xx_dualcore_boot_cm4_cm7.c \
  ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h7xx.h \
  ../../Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h755xx.h \
  ../../Drivers/CMSIS/Include/core_cm4.h \

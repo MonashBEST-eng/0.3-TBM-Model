@@ -53,9 +53,8 @@ typedef struct{
 	uint16_t GPIOPinA;
 	GPIO_TypeDef *gpioportB;
 	uint16_t GPIOPinB;
-	// encoder: a TIM in encoder mode, or (if enc_timer is NULL) an LPTIM in encoder mode
+	// encoder: a TIM in encoder mode
 	TIM_HandleTypeDef *enc_timer;
-	LPTIM_HandleTypeDef *enc_lptim;
 	uint8_t enc_invert;          // set to 1 if this leg counts NEGATIVE while extending
 	uint16_t enc_last;           // last raw 16-bit counter value
 	int32_t position_ticks;      // signed position (+ extending)
@@ -149,12 +148,11 @@ typedef struct{
 
 COM_InitTypeDef BspCOMInit;
 
-LPTIM_HandleTypeDef hlptim1;
-
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim12;
 TIM_HandleTypeDef htim13;
@@ -173,37 +171,37 @@ static motor h_bridge[ACTUATOR_COUNT] = {
 		.timer = &htim16, .channel = TIM_CHANNEL_1,
 		.gpioportA = M1_A_GPIO_Port, .GPIOPinA = M1_A_Pin,
 		.gpioportB = M1_B_GPIO_Port, .GPIOPinB = M1_B_Pin,
-		.enc_timer = &htim1, .enc_lptim = NULL, .enc_invert = 0U
+		.enc_timer = &htim1, .enc_invert = 0U
 	},
 	{ // M2: PWM TIM12 CH2 (PB15), encoder TIM2
 		.timer = &htim12, .channel = TIM_CHANNEL_2,
 		.gpioportA = M2_A_GPIO_Port, .GPIOPinA = M2_A_Pin,
 		.gpioportB = M2_B_GPIO_Port, .GPIOPinB = M2_B_Pin,
-		.enc_timer = &htim2, .enc_lptim = NULL, .enc_invert = 0U
+		.enc_timer = &htim2, .enc_invert = 0U
 	},
 	{ // M3: PWM TIM15 CH1 (PE5), encoder TIM3
 		.timer = &htim15, .channel = TIM_CHANNEL_1,
 		.gpioportA = M3_A_GPIO_Port, .GPIOPinA = M3_A_Pin,
 		.gpioportB = M3_B_GPIO_Port, .GPIOPinB = M3_B_Pin,
-		.enc_timer = &htim3, .enc_lptim = NULL, .enc_invert = 0U
+		.enc_timer = &htim3, .enc_invert = 0U
 	},
 	{ // M4: PWM TIM15 CH2 (PE6), encoder TIM4
 		.timer = &htim15, .channel = TIM_CHANNEL_2,
 		.gpioportA = M4_A_GPIO_Port, .GPIOPinA = M4_A_Pin,
 		.gpioportB = M4_B_GPIO_Port, .GPIOPinB = M4_B_Pin,
-		.enc_timer = &htim4, .enc_lptim = NULL, .enc_invert = 0U
+		.enc_timer = &htim4, .enc_invert = 0U
 	},
-	{ // M5: PWM TIM13 CH1 (PF8), encoder LPTIM1 (PG12/PG11)
+	{ // M5: PWM TIM13 CH1 (PF8), encoder TIM5 (PA0/PA1)
 		.timer = &htim13, .channel = TIM_CHANNEL_1,
 		.gpioportA = M5_A_GPIO_Port, .GPIOPinA = M5_A_Pin,
 		.gpioportB = M5_B_GPIO_Port, .GPIOPinB = M5_B_Pin,
-		.enc_timer = NULL, .enc_lptim = &hlptim1, .enc_invert = 0U
+		.enc_timer = &htim5, .enc_invert = 1U
 	},
 	{ // M6: PWM TIM14 CH1 (PF9), encoder TIM8
 		.timer = &htim14, .channel = TIM_CHANNEL_1,
 		.gpioportA = M6_A_GPIO_Port, .GPIOPinA = M6_A_Pin,
 		.gpioportB = M6_B_GPIO_Port, .GPIOPinB = M6_B_Pin,
-		.enc_timer = &htim8, .enc_lptim = NULL, .enc_invert = 0U
+		.enc_timer = &htim8, .enc_invert = 0U
 	}
 };
 
@@ -243,8 +241,8 @@ static void MX_TIM12_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_TIM14_Init(void);
 static void MX_TIM15_Init(void);
-static void MX_LPTIM1_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
 static void duty_limits_init(void);
 static void dir_pins_init(void);
@@ -356,17 +354,8 @@ static minResult simple_findmin(const volatile uint32_t arr[], uint32_t length){
 
 // Raw 16-bit counter of this leg's encoder
 static uint16_t enc_read(const motor *m){
-	if (m->enc_timer != NULL){
-		// TIM2 is 32-bit: the low 16 bits wrap consistently, so the cast is safe
-		return (uint16_t)__HAL_TIM_GET_COUNTER(m->enc_timer);
-	}
-	// LPTIM counter: read twice until two reads agree
-	uint32_t a, b;
-	do {
-		a = m->enc_lptim->Instance->CNT;
-		b = m->enc_lptim->Instance->CNT;
-	} while (a != b);
-	return (uint16_t)a;
+	// TIM2 and TIM5 are 32-bit: the low 16 bits wrap consistently, so the cast is safe
+	return (uint16_t)__HAL_TIM_GET_COUNTER(m->enc_timer);
 }
 
 static void update_encoders(void){
@@ -616,19 +605,19 @@ Error_Handler();
   MX_TIM13_Init();
   MX_TIM14_Init();
   MX_TIM15_Init();
-  MX_LPTIM1_Init();
   MX_TIM16_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
   duty_limits_init();
   dir_pins_init();
 
-  // encoders: five timers in encoder mode + LPTIM1 for leg 5
+  // encoders: six timers in encoder mode (TIM1, 2, 3, 4, 5, 8)
   if (HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL) != HAL_OK) Error_Handler();
   if (HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL) != HAL_OK) Error_Handler();
   if (HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL) != HAL_OK) Error_Handler();
   if (HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL) != HAL_OK) Error_Handler();
   if (HAL_TIM_Encoder_Start(&htim8, TIM_CHANNEL_ALL) != HAL_OK) Error_Handler();
-  if (HAL_LPTIM_Encoder_Start(&hlptim1, 65535U) != HAL_OK) Error_Handler();
+  if (HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL) != HAL_OK) Error_Handler();
   for (uint8_t i = 0; i < ACTUATOR_COUNT; i++)
       h_bridge[i].enc_last = enc_read(&h_bridge[i]);
 
@@ -675,7 +664,7 @@ Error_Handler();
 	  {
 		  last_enc_ms = now;
 		  update_encoders();
-		  // sync_actuators();
+		  sync_actuators();
 	  }
 
 	  //------------------- Print every 100 ms (updates the same 5 lines) ----------------------
@@ -761,42 +750,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief LPTIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_LPTIM1_Init(void)
-{
-
-  /* USER CODE BEGIN LPTIM1_Init 0 */
-
-  /* USER CODE END LPTIM1_Init 0 */
-
-  /* USER CODE BEGIN LPTIM1_Init 1 */
-
-  /* USER CODE END LPTIM1_Init 1 */
-  hlptim1.Instance = LPTIM1;
-  hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
-  hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV1;
-  hlptim1.Init.UltraLowPowerClock.Polarity = LPTIM_CLOCKPOLARITY_RISING_FALLING;
-  hlptim1.Init.UltraLowPowerClock.SampleTime = LPTIM_CLOCKSAMPLETIME_DIRECTTRANSITION;
-  hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
-  hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
-  hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
-  hlptim1.Init.CounterSource = LPTIM_COUNTERSOURCE_EXTERNAL;
-  hlptim1.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
-  hlptim1.Init.Input2Source = LPTIM_INPUT2SOURCE_GPIO;
-  if (HAL_LPTIM_Init(&hlptim1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN LPTIM1_Init 2 */
-
-  /* USER CODE END LPTIM1_Init 2 */
-
 }
 
 /**
@@ -994,6 +947,55 @@ static void MX_TIM4_Init(void)
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 0;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 4294967295;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 6;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 6;
+  if (HAL_TIM_Encoder_Init(&htim5, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
 
 }
 
@@ -1361,7 +1363,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOG_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, M1_A_Pin|M2_A_Pin|M1_B_Pin|M6_A_Pin
